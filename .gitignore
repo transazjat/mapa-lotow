@@ -1,0 +1,40 @@
+# Backend
+backend/vendor/
+backend/.env
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+mapalotow.code-workspace
+.DS_Store
+
+# Logs
+*.log
+
+# Temporary
+*.tmp
+*.temp
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Database dumps
+*.sql
+*.dump
+
+# Secrets / certificates
+*.key
+*.crt
+*.pem
