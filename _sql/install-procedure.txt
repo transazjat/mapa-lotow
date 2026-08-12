@@ -97,3 +97,24 @@ php -S localhost:8080 -t public
 # Powinno pojawić się coś w rodzaju:
 # PHP Development Server started
 # Listening on http://localhost:8080
+
+
+# Etap 5: utworzenie frontendu
+
+cd /d D:\_projekty\mapalotow
+npm create vite@latest frontend
+
+# Vite zapyta o framework. Wybierz:
+Vue
+
+# następnie:
+TypeScript
+
+# Po utworzeniu projektu:
+cd frontend
+npm install
+npm run dev
+
+# W katalogu: D:\_projekty\mapalotow\frontend
+# zainstaluj:
+npm install @turf/turf

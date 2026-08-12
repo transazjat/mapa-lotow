@@ -15,6 +15,7 @@ frontend/.env.local
 # OS
 Thumbs.db
 mapalotow.code-workspace
+start-dev.bat
 .DS_Store
 
 # Logs
