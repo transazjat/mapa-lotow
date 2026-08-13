@@ -7,6 +7,7 @@ import {
 } from 'vue'
 
 import {
+  LngLatBounds,
   Map,
   setWorkerUrl,
 } from 'maplibre-gl'
@@ -17,9 +18,16 @@ import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
 
 
 import AppSidebar from './components/AppSidebar.vue'
+
 import AirportDetailsPanel from './components/AirportDetailsPanel.vue'
+
 import RouteDetailsPanel from './components/RouteDetailsPanel.vue'
+
 import FlightDetailsPanel from './components/FlightDetailsPanel.vue'
+
+import AirportStatisticsPanel from './components/AirportStatisticsPanel.vue'
+
+import StatisticsMetricPanel from './components/StatisticsMetricPanel.vue'
 
 
 import {
@@ -64,6 +72,12 @@ setWorkerUrl(
 )
 
 
+/*
+|--------------------------------------------------------------------------
+| Konfiguracja
+|--------------------------------------------------------------------------
+*/
+
 const USER_ID =
   75
 
@@ -79,6 +93,12 @@ if (!mapTilerKey) {
 }
 
 
+/*
+|--------------------------------------------------------------------------
+| Mapa
+|--------------------------------------------------------------------------
+*/
+
 const mapContainer =
   ref<HTMLDivElement | null>(
     null,
@@ -90,17 +110,35 @@ let mapInstance:
   null
 
 
+/*
+|--------------------------------------------------------------------------
+| Dane lotów
+|--------------------------------------------------------------------------
+*/
+
 const allFlights =
   ref<Flight[]>(
     [],
   )
 
 
+/*
+|--------------------------------------------------------------------------
+| Globalny zakres lotów
+|--------------------------------------------------------------------------
+*/
+
 const scope =
   ref<FlightScope>(
     'completed',
   )
 
+
+/*
+|--------------------------------------------------------------------------
+| Nawigacja lewego panelu
+|--------------------------------------------------------------------------
+*/
 
 const activeTab =
   ref<SidebarTab>(
@@ -111,6 +149,12 @@ const activeTab =
 const sidebarCollapsed =
   ref(false)
 
+
+/*
+|--------------------------------------------------------------------------
+| Zaznaczenia na mapie
+|--------------------------------------------------------------------------
+*/
 
 const selectedAirport =
   ref<SelectedAirport | null>(
@@ -123,6 +167,12 @@ const selectedRoute =
     null,
   )
 
+
+/*
+|--------------------------------------------------------------------------
+| Konkretny lot
+|--------------------------------------------------------------------------
+*/
 
 const selectedFlightId =
   ref<number | null>(
@@ -148,8 +198,34 @@ const flightError =
 
 /*
 |--------------------------------------------------------------------------
+| Statystyki - szerokie panele
+|--------------------------------------------------------------------------
+*/
+
+const airportStatisticsOpen =
+  ref(false)
+
+
+const statisticsReport =
+  ref<
+    | 'flights'
+    | 'distance'
+    | 'duration'
+    | null
+  >(
+    null,
+  )
+
+
+/*
+|--------------------------------------------------------------------------
 | Loty po globalnym scope
 |--------------------------------------------------------------------------
+|
+| completed  -> tylko odbyte
+| all        -> odbyte + zaplanowane
+| planned    -> tylko zaplanowane
+|
 */
 
 const visibleFlights =
@@ -164,7 +240,7 @@ const visibleFlights =
 
 /*
 |--------------------------------------------------------------------------
-| Aktualny wynik zakładki Loty
+| Aktualny wynik wyszukiwarki w zakładce Loty
 |--------------------------------------------------------------------------
 */
 
@@ -176,8 +252,12 @@ const filteredFlights =
 
 /*
 |--------------------------------------------------------------------------
-| Dane aktualnie pokazywane na mapie
+| Loty aktualnie prezentowane na mapie
 |--------------------------------------------------------------------------
+|
+| W zakładce Loty mapa respektuje wszystkie filtry.
+| W pozostałych zakładkach respektuje globalny scope.
+|
 */
 
 const mapFlights =
@@ -187,22 +267,145 @@ const mapFlights =
         activeTab.value ===
         'flights'
       ) {
-        return (
-          filteredFlights.value
-        )
+        return filteredFlights.value
       }
-
 
       return visibleFlights.value
     },
   )
 
 
+/*
+|--------------------------------------------------------------------------
+| Dopasowanie widoku mapy
+|--------------------------------------------------------------------------
+*/
+
+function fitMapToFlights(
+  map: Map,
+  flights: Flight[],
+): void {
+  if (
+    flights.length ===
+    0
+  ) {
+    return
+  }
+
+
+  const bounds =
+    new LngLatBounds()
+
+
+  for (
+    const flight
+    of flights
+  ) {
+    const departureLongitude =
+      Number(
+        flight.departure_longitude,
+      )
+
+    const departureLatitude =
+      Number(
+        flight.departure_latitude,
+      )
+
+    const arrivalLongitude =
+      Number(
+        flight.arrival_longitude,
+      )
+
+    const arrivalLatitude =
+      Number(
+        flight.arrival_latitude,
+      )
+
+
+    if (
+      Number.isFinite(
+        departureLongitude,
+      ) &&
+      Number.isFinite(
+        departureLatitude,
+      )
+    ) {
+      bounds.extend([
+        departureLongitude,
+        departureLatitude,
+      ])
+    }
+
+
+    if (
+      Number.isFinite(
+        arrivalLongitude,
+      ) &&
+      Number.isFinite(
+        arrivalLatitude,
+      )
+    ) {
+      bounds.extend([
+        arrivalLongitude,
+        arrivalLatitude,
+      ])
+    }
+  }
+
+
+  if (
+    bounds.isEmpty()
+  ) {
+    return
+  }
+
+
+  map.fitBounds(
+    bounds,
+    {
+      padding: {
+        top:
+          80,
+
+        right:
+          80,
+
+        bottom:
+          80,
+
+        left:
+          sidebarCollapsed.value
+            ? 80
+            : 420,
+      },
+
+      maxZoom:
+        7,
+
+      duration:
+        800,
+    },
+  )
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Sidebar
+|--------------------------------------------------------------------------
+*/
+
 function toggleSidebar(): void {
   sidebarCollapsed.value =
     !sidebarCollapsed.value
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| Zmiana głównej zakładki
+|--------------------------------------------------------------------------
+*/
 
 function changeTab(
   tab: SidebarTab,
@@ -212,8 +415,26 @@ function changeTab(
 
 
   /*
-   * Po wyjściu z zakładki Loty
-   * mapa wraca do globalnego scope.
+   * Po wyjściu ze Statystyk
+   * zamykamy szerokie raporty.
+   */
+
+  if (
+    tab !==
+    'statistics'
+  ) {
+    airportStatisticsOpen.value =
+      false
+
+    statisticsReport.value =
+      null
+  }
+
+
+  /*
+   * Po wyjściu z Lotów
+   * mapa wraca do pełnego
+   * zbioru danego scope.
    */
 
   if (
@@ -226,19 +447,39 @@ function changeTab(
 }
 
 
+/*
+|--------------------------------------------------------------------------
+| Zmiana globalnego scope
+|--------------------------------------------------------------------------
+*/
+
 function changeScope(
   value: FlightScope,
 ): void {
   scope.value =
     value
 
+
   filteredFlights.value =
     filterFlightsByScope(
       allFlights.value,
       value,
     )
+
+
+  /*
+   * Szerokie raporty statystyczne
+   * mogą pozostać otwarte.
+   * Ich dane zmienią się reaktywnie.
+   */
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| Wynik filtrów zakładki Loty
+|--------------------------------------------------------------------------
+*/
 
 function receiveFilteredFlights(
   flights: Flight[],
@@ -247,6 +488,165 @@ function receiveFilteredFlights(
     flights
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| Statystyki - lotniska
+|--------------------------------------------------------------------------
+*/
+
+function openAirportStatistics(): void {
+  selectedAirport.value =
+    null
+
+  selectedRoute.value =
+    null
+
+  selectedFlightId.value =
+    null
+
+  selectedFlight.value =
+    null
+
+  flightError.value =
+    null
+
+
+  statisticsReport.value =
+    null
+
+
+  if (mapInstance) {
+    clearHighlightedRoute(
+      mapInstance,
+    )
+  }
+
+
+  airportStatisticsOpen.value =
+    true
+}
+
+
+function closeAirportStatistics(): void {
+  airportStatisticsOpen.value =
+    false
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Statystyki - raporty liczbowe
+|--------------------------------------------------------------------------
+*/
+
+function openStatisticsReport(
+  report:
+    | 'flights'
+    | 'distance'
+    | 'duration',
+): void {
+  selectedAirport.value =
+    null
+
+  selectedRoute.value =
+    null
+
+  selectedFlightId.value =
+    null
+
+  selectedFlight.value =
+    null
+
+  flightError.value =
+    null
+
+
+  if (mapInstance) {
+    clearHighlightedRoute(
+      mapInstance,
+    )
+  }
+
+
+  airportStatisticsOpen.value =
+    false
+
+  statisticsReport.value =
+    report
+}
+
+
+function closeStatisticsReport(): void {
+  statisticsReport.value =
+    null
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Przejście z tabeli statystycznej do panelu lotniska
+|--------------------------------------------------------------------------
+*/
+
+function openAirportFromStatistics(
+  airport:
+    SelectedAirport,
+): void {
+  airportStatisticsOpen.value =
+    false
+
+  statisticsReport.value =
+    null
+
+
+  selectedRoute.value =
+    null
+
+  selectedFlightId.value =
+    null
+
+  selectedFlight.value =
+    null
+
+  flightError.value =
+    null
+
+
+  if (mapInstance) {
+    clearHighlightedRoute(
+      mapInstance,
+    )
+
+
+    mapInstance.flyTo({
+      center: [
+        airport.longitude,
+        airport.latitude,
+      ],
+
+      zoom:
+        Math.max(
+          mapInstance.getZoom(),
+          5,
+        ),
+
+      duration:
+        700,
+    })
+  }
+
+
+  selectedAirport.value =
+    airport
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Wspólne czyszczenie zaznaczeń
+|--------------------------------------------------------------------------
+*/
 
 function clearSelection(): void {
   selectedAirport.value =
@@ -263,8 +663,17 @@ function clearSelection(): void {
 
   flightError.value =
     null
+
+  flightLoading.value =
+    false
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| Panel lotniska - kierunek
+|--------------------------------------------------------------------------
+*/
 
 function selectDestination(
   destination:
@@ -293,6 +702,12 @@ function selectDestination(
 }
 
 
+/*
+|--------------------------------------------------------------------------
+| Panel lotniska - port wylotu
+|--------------------------------------------------------------------------
+*/
+
 function selectOrigin(
   origin:
     AirportDirectionStat,
@@ -319,6 +734,12 @@ function selectOrigin(
   )
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| Panel lotniska -> szczegóły trasy
+|--------------------------------------------------------------------------
+*/
 
 function openDestinationRoute(
   destination:
@@ -370,6 +791,12 @@ function openDestinationRoute(
 }
 
 
+/*
+|--------------------------------------------------------------------------
+| Panel lotniska -> szczegóły trasy w przeciwnym kierunku
+|--------------------------------------------------------------------------
+*/
+
 function openOriginRoute(
   origin:
     AirportDirectionStat,
@@ -420,26 +847,48 @@ function openOriginRoute(
 }
 
 
+/*
+|--------------------------------------------------------------------------
+| Wybór trasy
+|--------------------------------------------------------------------------
+*/
+
 function selectRoute(
   route:
     SelectedRoute,
 ): void {
+  /*
+   * flightMap.ts nie musi znać flag.
+   * Uzupełniamy je tutaj na podstawie
+   * pierwszego zgodnego lotu.
+   */
+
   const matchingFlight =
     mapFlights.value.find(
       (flight) => {
         const departureMatches =
           route.departureCode
-            ? flight.departure_iata ===
-              route.departureCode
-            : flight.departure_airport_name ===
-              route.departureName
+            ? (
+                flight.departure_iata ===
+                route.departureCode
+              )
+            : (
+                flight.departure_airport_name ===
+                route.departureName
+              )
+
 
         const arrivalMatches =
           route.arrivalCode
-            ? flight.arrival_iata ===
-              route.arrivalCode
-            : flight.arrival_airport_name ===
-              route.arrivalName
+            ? (
+                flight.arrival_iata ===
+                route.arrivalCode
+              )
+            : (
+                flight.arrival_airport_name ===
+                route.arrivalName
+              )
+
 
         return (
           departureMatches &&
@@ -449,15 +898,23 @@ function selectRoute(
     )
 
 
-  selectedAirport.value =
+  airportStatisticsOpen.value =
+    false
+
+  statisticsReport.value =
     null
 
+
+  selectedAirport.value =
+    null
 
   selectedFlightId.value =
     null
 
-
   selectedFlight.value =
+    null
+
+  flightError.value =
     null
 
 
@@ -478,6 +935,12 @@ function selectRoute(
   }
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| Pobranie pełnego rekordu lotu
+|--------------------------------------------------------------------------
+*/
 
 async function loadFlight(
   id: number,
@@ -519,6 +982,12 @@ async function loadFlight(
 }
 
 
+/*
+|--------------------------------------------------------------------------
+| Lot wybrany z panelu trasy
+|--------------------------------------------------------------------------
+*/
+
 async function selectRouteFlight(
   flight:
     RouteFlight,
@@ -529,10 +998,23 @@ async function selectRouteFlight(
 }
 
 
+/*
+|--------------------------------------------------------------------------
+| Lot wybrany z lewej listy
+|--------------------------------------------------------------------------
+*/
+
 async function selectFlightFromList(
   flight:
     Flight,
 ): Promise<void> {
+  airportStatisticsOpen.value =
+    false
+
+  statisticsReport.value =
+    null
+
+
   selectedAirport.value =
     null
 
@@ -572,6 +1054,12 @@ async function selectFlightFromList(
 }
 
 
+/*
+|--------------------------------------------------------------------------
+| Powrót ze szczegółów lotu
+|--------------------------------------------------------------------------
+*/
+
 function backFromFlight(): void {
   selectedFlightId.value =
     null
@@ -582,6 +1070,18 @@ function backFromFlight(): void {
   flightError.value =
     null
 
+  flightLoading.value =
+    false
+
+
+  /*
+   * Jeśli lot był otwarty z panelu trasy,
+   * selectedRoute nadal istnieje,
+   * więc wracamy do historii trasy.
+   *
+   * Jeśli z listy Loty, zdejmujemy
+   * granatowe zaznaczenie.
+   */
 
   if (
     !selectedRoute.value &&
@@ -593,6 +1093,12 @@ function backFromFlight(): void {
   }
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| Zamknięcia paneli
+|--------------------------------------------------------------------------
+*/
 
 function closeAirport(): void {
   selectedAirport.value =
@@ -633,7 +1139,7 @@ function closeFlight(): void {
 
 /*
 |--------------------------------------------------------------------------
-| Każda zmiana filtrów przebudowuje mapę
+| Aktualizacja mapy przy scope / filtrach
 |--------------------------------------------------------------------------
 */
 
@@ -653,13 +1159,38 @@ watch(
       mapInstance,
       flights,
     )
+
+
+    /*
+     * W zakładce Loty mapa
+     * automatycznie dopasowuje się
+     * do wyniku wyszukiwania.
+     */
+
+    if (
+      activeTab.value ===
+      'flights'
+    ) {
+      fitMapToFlights(
+        mapInstance,
+        flights,
+      )
+    }
   },
 )
 
 
+/*
+|--------------------------------------------------------------------------
+| Start aplikacji
+|--------------------------------------------------------------------------
+*/
+
 onMounted(
   async () => {
-    if (!mapContainer.value) {
+    if (
+      !mapContainer.value
+    ) {
       return
     }
 
@@ -708,6 +1239,10 @@ onMounted(
         'load',
 
         async () => {
+          /*
+           * Linie lotów
+           */
+
           addFlightsToMap(
             map,
 
@@ -721,12 +1256,23 @@ onMounted(
           )
 
 
+          /*
+           * Lotniska
+           */
+
           await addAirportsToMap(
             map,
 
             mapFlights.value,
 
             (airport) => {
+              airportStatisticsOpen.value =
+                false
+
+              statisticsReport.value =
+                null
+
+
               selectedRoute.value =
                 null
 
@@ -734,6 +1280,9 @@ onMounted(
                 null
 
               selectedFlight.value =
+                null
+
+              flightError.value =
                 null
 
 
@@ -761,43 +1310,81 @@ onMounted(
 <template>
   <main class="app-shell">
 
+    <!-- Mapa -->
+
     <div
       ref="mapContainer"
       class="map"
     ></div>
 
 
+    <!-- Lewy panel -->
+
     <AppSidebar
-      :flights="visibleFlights"
+      :flights="
+        visibleFlights
+      "
 
-      :active-tab="activeTab"
+      :active-tab="
+        activeTab
+      "
 
-      :scope="scope"
+      :scope="
+        scope
+      "
 
-      :collapsed="sidebarCollapsed"
+      :collapsed="
+        sidebarCollapsed
+      "
 
-      :active-flight-id="selectedFlightId"
+      :active-flight-id="
+        selectedFlightId
+      "
 
-      @toggle="toggleSidebar"
+      @toggle="
+        toggleSidebar
+      "
 
-      @tab="changeTab"
+      @tab="
+        changeTab
+      "
 
-      @scope="changeScope"
+      @scope="
+        changeScope
+      "
 
-      @flight="selectFlightFromList"
+      @flight="
+        selectFlightFromList
+      "
 
       @filtered-flights="
         receiveFilteredFlights
       "
+
+      @statistics-airports="
+        openAirportStatistics
+      "
+
+      @statistics-report="
+        openStatisticsReport
+      "
     />
 
 
+    <!-- Standardowy panel lotniska -->
+
     <AirportDetailsPanel
-      v-if="selectedAirport"
+      v-if="
+        selectedAirport
+      "
 
-      :airport="selectedAirport"
+      :airport="
+        selectedAirport
+      "
 
-      @close="closeAirport"
+      @close="
+        closeAirport
+      "
 
       @destination="
         selectDestination
@@ -817,6 +1404,8 @@ onMounted(
     />
 
 
+    <!-- Panel trasy -->
+
     <RouteDetailsPanel
       v-if="
         selectedRoute &&
@@ -824,9 +1413,13 @@ onMounted(
           null
       "
 
-      :route="selectedRoute"
+      :route="
+        selectedRoute
+      "
 
-      @close="closeRoute"
+      @close="
+        closeRoute
+      "
 
       @flight="
         selectRouteFlight
@@ -834,21 +1427,75 @@ onMounted(
     />
 
 
+    <!-- Panel pojedynczego lotu -->
+
     <FlightDetailsPanel
       v-if="
         selectedFlightId !==
         null
       "
 
-      :flight="selectedFlight"
+      :flight="
+        selectedFlight
+      "
 
-      :loading="flightLoading"
+      :loading="
+        flightLoading
+      "
 
-      :error="flightError"
+      :error="
+        flightError
+      "
 
-      @back="backFromFlight"
+      @back="
+        backFromFlight
+      "
 
-      @close="closeFlight"
+      @close="
+        closeFlight
+      "
+    />
+
+
+    <!-- Szeroka tabela statystyk lotnisk -->
+
+    <AirportStatisticsPanel
+      v-if="
+        airportStatisticsOpen
+      "
+
+      :flights="
+        visibleFlights
+      "
+
+      @airport="
+        openAirportFromStatistics
+      "
+
+      @close="
+        closeAirportStatistics
+      "
+    />
+
+
+    <!-- Szerokie raporty: loty / dystans / czas -->
+
+    <StatisticsMetricPanel
+      v-if="
+        statisticsReport
+      "
+
+      :flights="
+        visibleFlights
+      "
+
+      :report-type="
+        statisticsReport
+      "
+
+      @close="
+        closeStatisticsReport
+      "
     />
 
   </main>
@@ -878,12 +1525,14 @@ body {
     "Segoe UI",
     sans-serif;
 
-  background: #f4f4f4;
+  background:
+    #f4f4f4;
 }
 
 
 * {
-  box-sizing: border-box;
+  box-sizing:
+    border-box;
 }
 
 
@@ -932,11 +1581,13 @@ button {
 
 ::-webkit-scrollbar {
   width: 7px;
+  height: 7px;
 }
 
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background:
+    transparent;
 }
 
 
@@ -949,7 +1600,8 @@ button {
       0.18
     );
 
-  border-radius: 20px;
+  border-radius:
+    20px;
 }
 
 

@@ -44,6 +44,16 @@ const emit = defineEmits<{
 
   filteredFlights:
     [flights: Flight[]]
+
+  statisticsAirports: []
+
+  statisticsReport: [
+    type:
+      | 'flights'
+      | 'distance'
+      | 'duration',
+  ]  
+
 }>()
 
 
@@ -111,7 +121,9 @@ const airlines =
               flight.airline_id,
           )
           .filter(
-            (value) =>
+            (
+              value,
+            ): value is number =>
               value !== null,
           ),
       ).size,
@@ -128,7 +140,9 @@ const aircraft =
               flight.aircraft_type_id,
           )
           .filter(
-            (value) =>
+            (
+              value,
+            ): value is number =>
               value !== null,
           ),
       ).size,
@@ -388,6 +402,7 @@ function formatDuration(
         <div class="stats-grid">
 
           <div>
+
             <strong>
               {{
                 formatNumber(
@@ -399,10 +414,12 @@ function formatDuration(
             <span>
               km
             </span>
+
           </div>
 
 
           <div>
+
             <strong>
               {{
                 formatDuration(
@@ -414,10 +431,12 @@ function formatDuration(
             <span>
               w powietrzu
             </span>
+
           </div>
 
 
           <div>
+
             <strong>
               {{ airports }}
             </strong>
@@ -425,10 +444,12 @@ function formatDuration(
             <span>
               lotnisk
             </span>
+
           </div>
 
 
           <div>
+
             <strong>
               {{ airlines }}
             </strong>
@@ -436,10 +457,12 @@ function formatDuration(
             <span>
               linii
             </span>
+
           </div>
 
 
           <div>
+
             <strong>
               {{ aircraft }}
             </strong>
@@ -447,10 +470,12 @@ function formatDuration(
             <span>
               typów samolotów
             </span>
+
           </div>
 
 
           <div>
+
             <strong>
               {{ routes }}
             </strong>
@@ -458,6 +483,7 @@ function formatDuration(
             <span>
               tras
             </span>
+
           </div>
 
         </div>
@@ -500,6 +526,19 @@ function formatDuration(
         "
 
         :flights="flights"
+
+        @airports="
+          emit(
+            'statisticsAirports',
+          )
+        "
+
+        @report="
+          emit(
+            'statisticsReport',
+            $event,
+          )
+        "
       />
 
 
@@ -507,6 +546,7 @@ function formatDuration(
         v-else
         class="account-placeholder"
       >
+
         <strong>
           Konto
         </strong>
@@ -514,6 +554,7 @@ function formatDuration(
         <p>
           Funkcje konta dodamy później.
         </p>
+
       </section>
 
     </div>
@@ -534,7 +575,9 @@ function formatDuration(
   width: 370px;
 
   max-height:
-    calc(100vh - 36px);
+    calc(
+      100vh - 36px
+    );
 
   background:
     rgba(
@@ -606,7 +649,9 @@ function formatDuration(
 
 .sidebar-content {
   max-height:
-    calc(100vh - 36px);
+    calc(
+      100vh - 36px
+    );
 
   overflow-y: auto;
 
@@ -663,8 +708,7 @@ function formatDuration(
 
   border-radius: 6px;
 
-  background:
-    transparent;
+  background: transparent;
 
   color: #555;
 
@@ -740,8 +784,7 @@ function formatDuration(
 
   border-radius: 6px;
 
-  background:
-    transparent;
+  background: transparent;
 
   color: #666;
 
@@ -863,8 +906,7 @@ function formatDuration(
         100% - 20px
       );
 
-    max-height:
-      55vh;
+    max-height: 55vh;
   }
 
 

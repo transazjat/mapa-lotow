@@ -7,21 +7,22 @@ import type {
   Flight,
 } from '../types/flight'
 
-import {
-  isPlannedFlight,
-} from '../utils/flightScope'
-
 
 const props = defineProps<{
   flights: Flight[]
 }>()
 
 
-interface RankingItem {
-  label: string
-  sublabel?: string
-  count: number
-}
+const emit = defineEmits<{
+  airports: []
+
+  report: [
+    type:
+      | 'flights'
+      | 'distance'
+      | 'duration',
+  ]
+}>()
 
 
 const totalDistance =
@@ -54,210 +55,31 @@ const totalDuration =
   )
 
 
-const plannedCount =
+const airports =
   computed(
-    () =>
-      props.flights.filter(
-        isPlannedFlight,
-      ).length,
-  )
-
-
-const completedCount =
-  computed(
-    () =>
-      props.flights.length -
-      plannedCount.value,
-  )
-
-
-const airportRanking =
-  computed<RankingItem[]>(
     () => {
-      const map =
-        new Map<
-          string,
-          RankingItem
-        >()
-
+      const ids =
+        new Set<number>()
 
       for (
         const flight
         of props.flights
       ) {
-        const airports = [
-          {
-            code:
-              flight.departure_iata,
-            city:
-              flight.departure_city,
-            name:
-              flight.departure_airport_name,
-          },
+        ids.add(
+          flight.departure_airport_id,
+        )
 
-          {
-            code:
-              flight.arrival_iata,
-            city:
-              flight.arrival_city,
-            name:
-              flight.arrival_airport_name,
-          },
-        ]
-
-
-        for (
-          const airport
-          of airports
-        ) {
-          const key =
-            `${airport.code ?? ''}|${airport.name}`
-
-
-          const existing =
-            map.get(key)
-
-
-          if (existing) {
-            existing.count++
-          } else {
-            map.set(
-              key,
-              {
-                label:
-                  airport.code ??
-                  airport.name,
-
-                sublabel:
-                  airport.city,
-
-                count:
-                  1,
-              },
-            )
-          }
-        }
+        ids.add(
+          flight.arrival_airport_id,
+        )
       }
 
-
-      return [...map.values()]
-        .sort(
-          (a, b) =>
-            b.count -
-            a.count,
-        )
-        .slice(0, 10)
+      return ids.size
     },
   )
 
 
-const airlineRanking =
-  computed<RankingItem[]>(
-    () =>
-      buildSimpleRanking(
-        props.flights
-          .map(
-            (flight) =>
-              flight.airline_name,
-          )
-          .filter(
-            (
-              value,
-            ): value is string =>
-              Boolean(value),
-          ),
-      ),
-  )
-
-
-const aircraftRanking =
-  computed<RankingItem[]>(
-    () =>
-      buildSimpleRanking(
-        props.flights
-          .map(
-            (flight) =>
-              flight.aircraft_name,
-          )
-          .filter(
-            (
-              value,
-            ): value is string =>
-              Boolean(value),
-          ),
-      ),
-  )
-
-
-const routeRanking =
-  computed<RankingItem[]>(
-    () => {
-      const map =
-        new Map<
-          string,
-          RankingItem
-        >()
-
-
-      for (
-        const flight
-        of props.flights
-      ) {
-        const departure =
-          flight.departure_iata ??
-          flight.departure_city
-
-        const arrival =
-          flight.arrival_iata ??
-          flight.arrival_city
-
-        const key =
-          `${departure} → ${arrival}`
-
-
-        const existing =
-          map.get(key)
-
-
-        if (existing) {
-          existing.count++
-        } else {
-          map.set(
-            key,
-            {
-              label:
-                key,
-
-              sublabel:
-                `${flight.departure_city} → ${flight.arrival_city}`,
-
-              count:
-                1,
-            },
-          )
-        }
-      }
-
-
-      return [...map.values()]
-        .sort(
-          (a, b) =>
-            b.count -
-            a.count,
-        )
-        .slice(0, 10)
-    },
-  )
-
-
-const uniqueAirports =
-  computed(
-    () =>
-      airportRankingAll().length,
-  )
-
-
-const uniqueAirlines =
+const airlines =
   computed(
     () =>
       new Set(
@@ -267,14 +89,16 @@ const uniqueAirlines =
               flight.airline_id,
           )
           .filter(
-            (value) =>
+            (
+              value,
+            ): value is number =>
               value !== null,
           ),
       ).size,
   )
 
 
-const uniqueAircraft =
+const aircraft =
   computed(
     () =>
       new Set(
@@ -284,152 +108,32 @@ const uniqueAircraft =
               flight.aircraft_type_id,
           )
           .filter(
-            (value) =>
+            (
+              value,
+            ): value is number =>
               value !== null,
           ),
       ).size,
   )
 
 
-const uniqueRoutes =
+const routes =
   computed(
     () =>
       new Set(
         props.flights.map(
           (flight) =>
-            [
-              flight.departure_airport_id,
-              flight.arrival_airport_id,
-            ].join('>'),
+            `${flight.departure_airport_id}>${flight.arrival_airport_id}`,
         ),
       ).size,
   )
-
-
-function airportRankingAll():
-  RankingItem[] {
-  const map =
-    new Map<
-      string,
-      RankingItem
-    >()
-
-
-  for (
-    const flight
-    of props.flights
-  ) {
-    const values = [
-      {
-        id:
-          flight.departure_airport_id,
-
-        code:
-          flight.departure_iata,
-
-        city:
-          flight.departure_city,
-      },
-
-      {
-        id:
-          flight.arrival_airport_id,
-
-        code:
-          flight.arrival_iata,
-
-        city:
-          flight.arrival_city,
-      },
-    ]
-
-
-    for (
-      const value
-      of values
-    ) {
-      const key =
-        String(value.id)
-
-
-      const existing =
-        map.get(key)
-
-
-      if (existing) {
-        existing.count++
-      } else {
-        map.set(
-          key,
-          {
-            label:
-              value.code ??
-              value.city,
-
-            sublabel:
-              value.city,
-
-            count:
-              1,
-          },
-        )
-      }
-    }
-  }
-
-
-  return [...map.values()]
-}
-
-
-function buildSimpleRanking(
-  values: string[],
-): RankingItem[] {
-  const map =
-    new Map<
-      string,
-      number
-    >()
-
-
-  for (const value of values) {
-    map.set(
-      value,
-
-      (
-        map.get(value) ??
-        0
-      ) + 1,
-    )
-  }
-
-
-  return [...map.entries()]
-    .map(
-      (
-        [
-          label,
-          count,
-        ],
-      ) => ({
-        label,
-        count,
-      }),
-    )
-    .sort(
-      (a, b) =>
-        b.count -
-        a.count,
-    )
-    .slice(0, 10)
-}
 
 
 function formatNumber(
   value: number,
 ): string {
   return new Intl.NumberFormat(
-    'pl-PL',
+    undefined,
   ).format(value)
 }
 
@@ -456,235 +160,218 @@ function formatDuration(
 
 
 <template>
-  <section class="statistics">
+  <section class="statistics-panel">
 
-    <div class="stats-main-grid">
+    <section class="primary-summary">
 
-      <div class="main-card">
-
-        <strong>
-          {{ formatNumber(flights.length) }}
-        </strong>
-
-        <span>
-          lotów
-        </span>
-
-      </div>
-
-
-      <div class="main-card">
-
-        <strong>
-          {{ formatNumber(totalDistance) }}
-        </strong>
-
-        <span>
-          kilometrów
-        </span>
-
-      </div>
-
-
-      <div class="main-card">
-
-        <strong>
-          {{ formatDuration(totalDuration) }}
-        </strong>
-
-        <span>
-          w powietrzu
-        </span>
-
-      </div>
-
-    </div>
-
-
-    <div
-      v-if="
-        completedCount > 0 &&
-        plannedCount > 0
-      "
-      class="scope-breakdown"
-    >
-
-      <span>
-        Odbyte:
-        <strong>
-          {{ completedCount }}
-        </strong>
-      </span>
-
-      <span class="planned">
-        Zaplanowane:
-        <strong>
-          {{ plannedCount }}
-        </strong>
-      </span>
-
-    </div>
-
-
-    <div class="small-grid">
-
-      <div>
-        <strong>
-          {{ uniqueAirports }}
-        </strong>
-        <span>lotnisk</span>
-      </div>
-
-      <div>
-        <strong>
-          {{ uniqueAirlines }}
-        </strong>
-        <span>linii</span>
-      </div>
-
-      <div>
-        <strong>
-          {{ uniqueAircraft }}
-        </strong>
-        <span>typów</span>
-      </div>
-
-      <div>
-        <strong>
-          {{ uniqueRoutes }}
-        </strong>
-        <span>tras</span>
-      </div>
-
-    </div>
-
-
-    <section class="ranking">
-
-      <h3>
-        Lotniska
-      </h3>
-
-      <div
-        v-for="(item, index) in airportRanking"
-        :key="`${item.label}-${index}`"
-        class="ranking-row"
+      <button
+        type="button"
+        class="primary-card"
+        @click="
+          emit(
+            'report',
+            'flights',
+          )
+        "
       >
 
-        <span class="position">
-          {{ index + 1 }}.
-        </span>
+        <div class="primary-card__content">
 
-        <div class="ranking-label">
           <strong>
-            {{ item.label }}
+            {{
+              formatNumber(
+                flights.length,
+              )
+            }}
           </strong>
 
-          <small>
-            {{ item.sublabel }}
-          </small>
+          <span>
+            lotów
+          </span>
+
         </div>
 
-        <b>
-          {{ item.count }}
-        </b>
 
-      </div>
+        <div class="details-button">
+
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+
+        </div>
+
+      </button>
+
+
+      <button
+        type="button"
+        class="primary-card"
+        @click="
+          emit(
+            'report',
+            'distance',
+          )
+        "
+      >
+
+        <div class="primary-card__content">
+
+          <strong>
+            {{
+              formatNumber(
+                totalDistance,
+              )
+            }}
+          </strong>
+
+          <span>
+            kilometrów
+          </span>
+
+        </div>
+
+
+        <div class="details-button">
+
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+
+        </div>
+
+      </button>
+
+
+      <button
+        type="button"
+        class="primary-card"
+        @click="
+          emit(
+            'report',
+            'duration',
+          )
+        "
+      >
+
+        <div class="primary-card__content">
+
+          <strong>
+            {{
+              formatDuration(
+                totalDuration,
+              )
+            }}
+          </strong>
+
+          <span>
+            w powietrzu
+          </span>
+
+        </div>
+
+
+        <div class="details-button">
+
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path
+              d="M9 5l7 7-7 7"
+            />
+          </svg>
+
+        </div>
+
+      </button>
 
     </section>
 
 
-    <section class="ranking">
+    <section class="statistics-menu">
 
-      <h3>
-        Linie lotnicze
-      </h3>
-
-      <div
-        v-for="(item, index) in airlineRanking"
-        :key="item.label"
-        class="ranking-row"
+      <button
+        type="button"
+        class="statistics-menu-card statistics-menu-card--active"
+        @click="
+          emit(
+            'airports',
+          )
+        "
       >
 
-        <span class="position">
-          {{ index + 1 }}.
-        </span>
-
-        <div class="ranking-label">
-          <strong>
-            {{ item.label }}
-          </strong>
+        <div class="statistics-menu-card__value">
+          {{ airports }}
         </div>
 
-        <b>
-          {{ item.count }}
-        </b>
+        <div class="statistics-menu-card__label">
+          lotnisk
+        </div>
+
+        <div class="statistics-menu-card__more">
+          Szczegóły →
+        </div>
+
+      </button>
+
+
+      <div class="statistics-menu-card">
+
+        <div class="statistics-menu-card__value">
+          {{ airlines }}
+        </div>
+
+        <div class="statistics-menu-card__label">
+          linii lotniczych
+        </div>
+
+        <div class="statistics-menu-card__more statistics-menu-card__more--muted">
+          wkrótce
+        </div>
 
       </div>
 
-    </section>
 
+      <div class="statistics-menu-card">
 
-    <section class="ranking">
-
-      <h3>
-        Samoloty
-      </h3>
-
-      <div
-        v-for="(item, index) in aircraftRanking"
-        :key="item.label"
-        class="ranking-row"
-      >
-
-        <span class="position">
-          {{ index + 1 }}.
-        </span>
-
-        <div class="ranking-label">
-          <strong>
-            {{ item.label }}
-          </strong>
+        <div class="statistics-menu-card__value">
+          {{ aircraft }}
         </div>
 
-        <b>
-          {{ item.count }}
-        </b>
+        <div class="statistics-menu-card__label">
+          typów samolotów
+        </div>
+
+        <div class="statistics-menu-card__more statistics-menu-card__more--muted">
+          wkrótce
+        </div>
 
       </div>
 
-    </section>
 
+      <div class="statistics-menu-card">
 
-    <section class="ranking">
-
-      <h3>
-        Trasy
-      </h3>
-
-      <div
-        v-for="(item, index) in routeRanking"
-        :key="item.label"
-        class="ranking-row"
-      >
-
-        <span class="position">
-          {{ index + 1 }}.
-        </span>
-
-        <div class="ranking-label">
-          <strong>
-            {{ item.label }}
-          </strong>
-
-          <small>
-            {{ item.sublabel }}
-          </small>
+        <div class="statistics-menu-card__value">
+          {{ routes }}
         </div>
 
-        <b>
-          {{ item.count }}
-        </b>
+        <div class="statistics-menu-card__label">
+          tras
+        </div>
+
+        <div class="statistics-menu-card__more statistics-menu-card__more--muted">
+          wkrótce
+        </div>
 
       </div>
 
@@ -695,180 +382,285 @@ function formatDuration(
 
 
 <style scoped>
-.stats-main-grid {
+.statistics-panel {
+  margin-top: 14px;
+}
+
+
+.primary-summary {
   display: grid;
 
   gap: 7px;
 }
 
 
-.main-card {
-  padding: 13px;
+.primary-card {
+  display: grid;
+
+  width: 100%;
+  min-height: 88px;
+
+  grid-template-columns:
+    1fr 42px;
+
+  align-items: stretch;
+
+  padding:
+    8px;
+
+  border: 0;
+
+  border-radius: 10px;
 
   background: #f4f4f4;
 
-  border-radius: 9px;
+  cursor: pointer;
+
+  text-align: center;
+
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
 }
 
 
-.main-card strong {
-  display: block;
+.primary-card:hover {
+  background: #eeeeee;
 
-  font-size: 18px;
+  transform:
+    translateY(-1px);
 }
 
 
-.main-card span {
-  display: block;
+.primary-card__content {
+  display: flex;
 
-  margin-top: 3px;
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding-left: 8px;
+}
+
+
+.primary-card strong {
+  color: #9ca3af;
+
+  font-size: 20px;
+  font-weight: 700;
+
+  line-height: 1.1;
+}
+
+
+.primary-card span {
+  margin-top: 8px;
 
   color: #777;
 
-  font-size: 10px;
+  font-size: 11px;
 }
 
 
-.scope-breakdown {
+/*
+|--------------------------------------------------------------------------
+| Prawy przycisk
+|--------------------------------------------------------------------------
+*/
+
+.details-button {
   display: flex;
 
-  justify-content: space-between;
+  align-items: center;
 
-  gap: 10px;
+  justify-content: center;
 
-  margin-top: 8px;
+  width: 100%;
+  height: 100%;
 
-  padding: 8px 10px;
+  min-height: 72px;
 
-  border-radius: 7px;
+  border:
+    1px solid
+    rgba(
+      156,
+      163,
+      175,
+      0.26
+    );
 
-  background: #f6f6f6;
+  border-radius: 8px;
 
-  color: #666;
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.8
+    );
 
-  font-size: 9px;
+  color: #9ca3af;
+
+  transition:
+    color 0.15s ease,
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 
-.scope-breakdown .planned {
-  color: #c26812;
+.details-button svg {
+  width: 18px;
+  height: 18px;
+
+  display: block;
+
+  fill: none;
+
+  stroke: currentColor;
+
+  stroke-width: 2;
+
+  stroke-linecap: round;
+
+  stroke-linejoin: round;
 }
 
 
-.small-grid {
+.primary-card:hover
+.details-button {
+  border-color:
+    rgba(
+      11,
+      45,
+      92,
+      0.18
+    );
+
+  background: #fff;
+
+  color: #0b2d5c;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Spis treści
+|--------------------------------------------------------------------------
+*/
+
+.statistics-menu {
   display: grid;
 
   grid-template-columns:
-    repeat(4, 1fr);
+    1fr 1fr;
 
-  gap: 5px;
+  gap: 7px;
 
-  margin-top: 8px;
+  margin-top: 9px;
 }
 
 
-.small-grid div {
-  padding: 8px 4px;
+.statistics-menu-card {
+  display: flex;
+
+  min-height: 96px;
+
+  flex-direction: column;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding:
+    10px 8px;
 
   border:
-    1px solid #e8e8e8;
+    1px solid #e4e4e4;
 
-  border-radius: 7px;
+  border-radius: 9px;
+
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.78
+    );
 
   text-align: center;
 }
 
 
-.small-grid strong {
-  display: block;
+button.statistics-menu-card {
+  cursor: pointer;
 
-  font-size: 13px;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease;
 }
 
 
-.small-grid span {
-  display: block;
+button.statistics-menu-card:hover {
+  border-color:
+    rgba(
+      11,
+      45,
+      92,
+      0.18
+    );
 
-  margin-top: 2px;
+  background:
+    rgba(
+      11,
+      45,
+      92,
+      0.035
+    );
 
-  color: #888;
-
-  font-size: 8px;
+  transform:
+    translateY(-1px);
 }
 
 
-.ranking {
-  margin-top: 20px;
+.statistics-menu-card--active {
+  border-left:
+    3px solid #9ca3af;
 }
 
 
-.ranking h3 {
-  margin: 0 0 7px;
+.statistics-menu-card__value {
+  color: #9ca3af;
 
-  font-size: 12px;
+  font-size: 20px;
+  font-weight: 700;
 }
 
 
-.ranking-row {
-  display: grid;
+.statistics-menu-card__label {
+  margin-top: 6px;
 
-  grid-template-columns:
-    22px 1fr auto;
+  color: #666;
 
-  align-items: center;
-
-  gap: 6px;
-
-  padding: 6px 2px;
-
-  border-bottom:
-    1px solid #eee;
+  font-size: 11px;
 }
 
 
-.position {
+.statistics-menu-card__more {
+  margin-top: 10px;
+
+  color: #6b7280;
+
+  font-size: 11px;
+  font-weight: 650;
+}
+
+
+.statistics-menu-card__more--muted {
   color: #aaa;
 
-  font-size: 9px;
-}
-
-
-.ranking-label {
-  min-width: 0;
-}
-
-
-.ranking-label strong {
-  display: block;
-
-  overflow: hidden;
-
-  font-size: 10px;
-
-  text-overflow: ellipsis;
-
-  white-space: nowrap;
-}
-
-
-.ranking-label small {
-  display: block;
-
-  overflow: hidden;
-
-  margin-top: 1px;
-
-  color: #888;
-
-  font-size: 8px;
-
-  text-overflow: ellipsis;
-
-  white-space: nowrap;
-}
-
-
-.ranking-row b {
-  font-size: 10px;
+  font-weight: 500;
 }
 </style>
