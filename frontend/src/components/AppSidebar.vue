@@ -6,6 +6,9 @@ import {
 import FlightsPanel from './FlightsPanel.vue'
 import StatisticsPanel from './StatisticsPanel.vue'
 
+import flightSignUrl from '../assets/branding/mapa-lotow-symbol.png'
+import transAzjaLogoUrl from '../assets/branding/transazja-logo.png'
+
 import type {
   Flight,
   FlightScope,
@@ -15,56 +18,26 @@ import type {
 
 const props = defineProps<{
   flights: Flight[]
-
-  activeTab:
-    SidebarTab
-
-  scope:
-    FlightScope
-
-  collapsed:
-    boolean
-
-  activeFlightId:
-    number | null
+  activeTab: SidebarTab
+  scope: FlightScope
+  collapsed: boolean
+  activeFlightId: number | null
+  initialAircraftFilterKey?: string | null
 }>()
 
 
 const emit = defineEmits<{
   toggle: []
-
-  tab: [
-    tab: SidebarTab,
-  ]
-
-  scope: [
-    scope: FlightScope,
-  ]
-
-  flight: [
-    flight: Flight,
-  ]
-
-  filteredFlights: [
-    flights: Flight[],
-  ]
-
+  tab: [tab: SidebarTab]
+  scope: [scope: FlightScope]
+  flight: [flight: Flight]
+  filteredFlights: [flights: Flight[]]
   statisticsAirports: []
-
-  statisticsReport: [
-    type:
-      | 'flights'
-      | 'distance'
-      | 'duration',
-  ]
+  statisticsReport: [type: 'flights' | 'distance' | 'duration']
+  statisticsSection: [type: 'airlines' | 'aircraft' | 'routes' | 'countries']
+  aircraftFilterChanged: [key: string | null]
 }>()
 
-
-/*
-|--------------------------------------------------------------------------
-| Podstawowe statystyki mapy
-|--------------------------------------------------------------------------
-*/
 
 const totalDistance =
   computed(
@@ -170,11 +143,53 @@ const routes =
   )
 
 
-/*
-|--------------------------------------------------------------------------
-| Formatowanie
-|--------------------------------------------------------------------------
-*/
+const transAzjaDestinations = [
+  {
+    label: 'NEPAL',
+    href: 'https://wyprawy.transazja.pl/nepal-wycieczka',
+  },
+  {
+    label: 'INDIE',
+    href: 'https://wyprawy.transazja.pl/indie-wycieczka',
+  },
+  {
+    label: 'LAOS',
+    href: 'https://wyprawy.transazja.pl/laos-wycieczka',
+  },
+  {
+    label: 'TYBET',
+    href: 'https://wyprawy.transazja.pl/tybet-wycieczka',
+  },
+  {
+    label: 'KAMBODŻA',
+    href: 'https://wyprawy.transazja.pl/kambodza-wycieczka',
+  },
+  {
+    label: 'SRI LANKA',
+    href: 'https://wyprawy.transazja.pl/sri-lanka-wycieczka',
+  },
+  {
+    label: 'OMAN',
+    href: 'https://wyprawy.transazja.pl/oman-wycieczka',
+  },
+  {
+    label: 'BIRMA',
+    href: 'https://wyprawy.transazja.pl/birma-wycieczka',
+  },
+  {
+    label: 'INDONEZJA',
+    href: 'https://wyprawy.transazja.pl/bali-wycieczka',
+  },
+  {
+    label: 'CHINY',
+    href: 'https://wyprawy.transazja.pl/chiny-wycieczka',
+  },
+  {
+    label: 'NAMIBIA',
+    href: 'https://wyprawy.transazja.pl/namibia-wycieczka',
+  },
+] as const
+
 
 function formatNumber(
   value: number,
@@ -203,6 +218,38 @@ function formatDuration(
 
   return `${formatNumber(hours)} h ${minutes} min`
 }
+
+
+function openStatisticsSection(
+  type:
+    | 'distance'
+    | 'duration'
+    | 'airports'
+    | 'airlines'
+    | 'aircraft'
+    | 'routes',
+): void {
+  emit('tab', 'statistics')
+
+  if (
+    type === 'distance' ||
+    type === 'duration'
+  ) {
+    emit(
+      'statisticsReport',
+      type,
+    )
+
+    return
+  }
+
+  if (type === 'airports') {
+    emit('statisticsAirports')
+    return
+  }
+
+  emit('statisticsSection', type)
+}
 </script>
 
 
@@ -214,11 +261,6 @@ function formatDuration(
         collapsed,
     }"
   >
-
-    <!-- ============================================================= -->
-    <!-- ZWIJANIE PANELU                                                -->
-    <!-- ============================================================= -->
-
     <button
       type="button"
       class="sidebar-toggle"
@@ -227,18 +269,8 @@ function formatDuration(
           ? 'Rozwiń panel'
           : 'Zwiń panel'
       "
-      :aria-label="
-        collapsed
-          ? 'Rozwiń panel'
-          : 'Zwiń panel'
-      "
-      @click="
-        emit(
-          'toggle',
-        )
-      "
+      @click="emit('toggle')"
     >
-
       <svg
         viewBox="0 0 24 24"
         aria-hidden="true"
@@ -247,258 +279,185 @@ function formatDuration(
             collapsed,
         }"
       >
-        <path
-          d="M14 6l-6 6 6 6"
-        />
+        <path d="M14 6l-6 6 6 6" />
       </svg>
-
     </button>
-
-
-    <!-- ============================================================= -->
-    <!-- ZAWARTOŚĆ SIDEBARA                                             -->
-    <!-- ============================================================= -->
 
     <div
       v-if="!collapsed"
       class="sidebar-content"
     >
-
-      <!-- =========================================================== -->
-      <!-- NAGŁÓWEK                                                    -->
-      <!-- =========================================================== -->
-
       <header class="sidebar-header">
+        <div class="brand-lockup">
+          <img
+            :src="flightSignUrl"
+            class="brand-symbol"
+            alt=""
+            aria-hidden="true"
+          >
 
-        <div class="app-name">
-          Mapa lotów
+          <div
+            class="brand-board"
+            aria-label="Mapa lotów"
+          >
+            <div class="brand-board__row">
+              <span>M</span>
+              <span>A</span>
+              <span>P</span>
+              <span>A</span>
+              <span class="brand-board__empty" />
+            </div>
+
+            <div class="brand-board__row">
+              <span>L</span>
+              <span>O</span>
+              <span>T</span>
+              <span>Ó</span>
+              <span>W</span>
+            </div>
+          </div>
         </div>
 
         <div class="user-name">
           Krzysztof
         </div>
-
       </header>
 
-
-      <!-- =========================================================== -->
-      <!-- NAWIGACJA                                                   -->
-      <!-- =========================================================== -->
-
       <nav class="main-nav">
-
         <button
           type="button"
           :class="{
             active:
-              activeTab ===
-              'map',
+              activeTab === 'map',
           }"
-          @click="
-            emit(
-              'tab',
-              'map',
-            )
-          "
+          @click="emit('tab', 'map')"
         >
           Mapa
         </button>
 
-
         <button
           type="button"
           :class="{
             active:
-              activeTab ===
-              'flights',
+              activeTab === 'flights',
           }"
-          @click="
-            emit(
-              'tab',
-              'flights',
-            )
-          "
+          @click="emit('tab', 'flights')"
         >
           Loty
         </button>
 
-
         <button
           type="button"
           :class="{
             active:
-              activeTab ===
-              'statistics',
+              activeTab === 'statistics',
           }"
-          @click="
-            emit(
-              'tab',
-              'statistics',
-            )
-          "
+          @click="emit('tab', 'statistics')"
         >
           Statystyki
         </button>
 
-
         <button
           type="button"
           :class="{
             active:
-              activeTab ===
-              'account',
+              activeTab === 'account',
           }"
-          @click="
-            emit(
-              'tab',
-              'account',
-            )
-          "
+          @click="emit('tab', 'account')"
         >
           Konto
         </button>
-
       </nav>
 
-
-      <!-- =========================================================== -->
-      <!-- GLOBALNY ZAKRES LOTÓW                                       -->
-      <!-- =========================================================== -->
-
       <section class="scope-section">
-
         <div class="scope-title">
           Zakres lotów
         </div>
 
-
         <div class="scope-switch">
-
           <button
             type="button"
             :class="{
               active:
-                scope ===
-                'completed',
+                scope === 'completed',
             }"
-            @click="
-              emit(
-                'scope',
-                'completed',
-              )
-            "
+            @click="emit('scope', 'completed')"
           >
             Odbyte
           </button>
 
-
           <button
             type="button"
             :class="{
               active:
-                scope ===
-                'all',
+                scope === 'all',
             }"
-            @click="
-              emit(
-                'scope',
-                'all',
-              )
-            "
+            @click="emit('scope', 'all')"
           >
             Wszystkie
           </button>
 
-
           <button
             type="button"
             :class="{
               active:
-                scope ===
-                'planned',
+                scope === 'planned',
             }"
-            @click="
-              emit(
-                'scope',
-                'planned',
-              )
-            "
+            @click="emit('scope', 'planned')"
           >
             Zaplanowane
           </button>
-
         </div>
-
       </section>
 
-
-      <!-- =========================================================== -->
-      <!-- MAPA                                                        -->
-      <!-- =========================================================== -->
-
       <section
-        v-if="
-          activeTab ===
-          'map'
-        "
+        v-if="activeTab === 'map'"
         class="tab-content"
       >
-
         <div class="main-stat">
-
           <strong>
-            {{
-              formatNumber(
-                flights.length,
-              )
-            }}
+            {{ formatNumber(flights.length) }}
           </strong>
 
           <span>
             lotów
           </span>
-
         </div>
 
-
         <div class="stats-grid">
-
-          <div>
-
+          <button
+            type="button"
+            class="stats-card stats-card--link"
+            @click="openStatisticsSection('distance')"
+          >
             <strong>
-              {{
-                formatNumber(
-                  totalDistance,
-                )
-              }}
+              {{ formatNumber(totalDistance) }}
             </strong>
 
             <span>
-              km
+              kilometrów
             </span>
+          </button>
 
-          </div>
-
-
-          <div>
-
+          <button
+            type="button"
+            class="stats-card stats-card--link"
+            @click="openStatisticsSection('duration')"
+          >
             <strong>
-              {{
-                formatDuration(
-                  totalDuration,
-                )
-              }}
+              {{ formatDuration(totalDuration) }}
             </strong>
 
             <span>
               w powietrzu
             </span>
+          </button>
 
-          </div>
-
-
-          <div>
-
+          <button
+            type="button"
+            class="stats-card stats-card--link"
+            @click="openStatisticsSection('airports')"
+          >
             <strong>
               {{ airports }}
             </strong>
@@ -506,25 +465,27 @@ function formatDuration(
             <span>
               lotnisk
             </span>
+          </button>
 
-          </div>
-
-
-          <div>
-
+          <button
+            type="button"
+            class="stats-card stats-card--link"
+            @click="openStatisticsSection('airlines')"
+          >
             <strong>
               {{ airlines }}
             </strong>
 
             <span>
-              linii
+              linii lotniczych
             </span>
+          </button>
 
-          </div>
-
-
-          <div>
-
+          <button
+            type="button"
+            class="stats-card stats-card--link"
+            @click="openStatisticsSection('aircraft')"
+          >
             <strong>
               {{ aircraft }}
             </strong>
@@ -532,12 +493,13 @@ function formatDuration(
             <span>
               typów samolotów
             </span>
+          </button>
 
-          </div>
-
-
-          <div>
-
+          <button
+            type="button"
+            class="stats-card stats-card--link"
+            @click="openStatisticsSection('routes')"
+          >
             <strong>
               {{ routes }}
             </strong>
@@ -545,212 +507,152 @@ function formatDuration(
             <span>
               tras
             </span>
-
-          </div>
-
+          </button>
         </div>
-
       </section>
-
-
-      <!-- =========================================================== -->
-      <!-- LOTY                                                        -->
-      <!-- =========================================================== -->
 
       <FlightsPanel
         v-else-if="
-          activeTab ===
-          'flights'
+          activeTab === 'flights'
         "
-
-        :flights="
-          flights
-        "
-
-        :active-flight-id="
-          activeFlightId
-        "
-
+        :flights="flights"
+        :active-flight-id="activeFlightId"
+        :initial-aircraft-filter-key="initialAircraftFilterKey"
         @flight="
           emit(
             'flight',
             $event,
           )
         "
-
         @filtered="
           emit(
             'filteredFlights',
             $event,
           )
         "
+        @aircraft-filter-changed="
+          emit(
+            'aircraftFilterChanged',
+            $event,
+          )
+        "
       />
-
-
-      <!-- =========================================================== -->
-      <!-- STATYSTYKI                                                   -->
-      <!-- =========================================================== -->
 
       <StatisticsPanel
         v-else-if="
-          activeTab ===
-          'statistics'
+          activeTab === 'statistics'
         "
-
-        :flights="
-          flights
-        "
-
+        :flights="flights"
         @airports="
           emit(
             'statisticsAirports',
           )
         "
-
         @report="
           emit(
             'statisticsReport',
             $event,
           )
         "
+        @section="
+          emit(
+            'statisticsSection',
+            $event,
+          )
+        "
       />
-
-
-      <!-- =========================================================== -->
-      <!-- KONTO                                                       -->
-      <!-- =========================================================== -->
 
       <section
         v-else
         class="account-placeholder"
       >
-
-        <strong>
-          Konto
-        </strong>
+        <strong>Konto</strong>
 
         <p>
           Funkcje konta dodamy później.
         </p>
-
       </section>
-
     </div>
 
+    <footer
+      v-if="!collapsed"
+      class="owner-brand"
+    >
+      <div class="owner-brand__logo-row">
+        <a
+          class="owner-brand__logo-link"
+          href="https://wyprawy.transazja.pl/"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="TransAzja - wyprawy do Azji"
+        >
+          <img
+            :src="transAzjaLogoUrl"
+            class="owner-brand__logo"
+            alt="TransAzja"
+          >
+        </a>
+      </div>
+
+      <div class="owner-brand__tagline">
+        Najlepsze wyprawy do Azji
+      </div>
+
+      <nav
+        class="owner-brand__destinations"
+        aria-label="Wyprawy TransAzja"
+      >
+        <a
+          v-for="destination in transAzjaDestinations"
+          :key="destination.label"
+          :href="destination.href"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          {{ destination.label }}
+        </a>
+      </nav>
+    </footer>
   </aside>
 </template>
 
-
 <style scoped>
-/*
-|--------------------------------------------------------------------------
-| Sidebar
-|--------------------------------------------------------------------------
-*/
-
 .sidebar {
   position: absolute;
-
   top: 18px;
   left: 18px;
-
   z-index: 20;
-
   width: 370px;
-
-  max-height:
-    calc(
-      100vh - 36px
-    );
-
-  background:
-    rgba(
-      255,
-      255,
-      255,
-      0.96
-    );
-
-  backdrop-filter:
-    blur(12px);
-
-  border:
-    1px solid
-    rgba(
-      0,
-      0,
-      0,
-      0.08
-    );
-
+  max-height: calc(100vh - 36px);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 16px;
-
-  box-shadow:
-    0 12px 35px
-    rgba(
-      0,
-      0,
-      0,
-      0.18
-    );
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.18);
 }
-
 
 .sidebar--collapsed {
   width: 52px;
-  height: 52px;
+  height: 60px;
 }
-
-
-/*
-|--------------------------------------------------------------------------
-| Przycisk zwijania
-|--------------------------------------------------------------------------
-|
-| Celowo trochę wyraźniejszy niż wcześniej,
-| ale nadal spokojny i zgodny z resztą interfejsu.
-|
-*/
 
 .sidebar-toggle {
   position: absolute;
-
   top: 10px;
   right: 10px;
-
   z-index: 5;
-
   display: flex;
-
   width: 34px;
   height: 34px;
-
   align-items: center;
-
   justify-content: center;
-
   padding: 0;
-
-  border:
-    1px solid #d9dde2;
-
+  border: 1px solid #d9dde2;
   border-radius: 9px;
-
   background: #eef0f2;
-
   color: #8a929d;
-
   cursor: pointer;
-
-  box-shadow:
-    0 1px 4px
-    rgba(
-      0,
-      0,
-      0,
-      0.055
-    );
-
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.055);
   transition:
     background 0.15s ease,
     border-color 0.15s ease,
@@ -758,297 +660,196 @@ function formatDuration(
     box-shadow 0.15s ease;
 }
 
-
 .sidebar-toggle:hover {
   border-color: #cbd1d8;
-
   background: #e5e8ec;
-
   color: #697482;
-
-  box-shadow:
-    0 2px 6px
-    rgba(
-      0,
-      0,
-      0,
-      0.075
-    );
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.075);
 }
-
 
 .sidebar-toggle svg {
   display: block;
-
   width: 17px;
   height: 17px;
-
   fill: none;
-
   stroke: currentColor;
-
   stroke-width: 2.2;
-
   stroke-linecap: round;
-
   stroke-linejoin: round;
-
-  transition:
-    transform 0.2s ease;
+  transition: transform 0.2s ease;
 }
-
-
-/*
- * Po zwinięciu strzałka wskazuje
- * kierunek rozwijania.
- */
 
 .sidebar-toggle__icon--collapsed {
-  transform:
-    rotate(
-      180deg
-    );
+  transform: rotate(180deg);
 }
-
-
-/*
-|--------------------------------------------------------------------------
-| Zawartość
-|--------------------------------------------------------------------------
-*/
 
 .sidebar-content {
-  max-height:
-    calc(
-      100vh - 36px
-    );
-
+  max-height: calc(100vh - 36px);
   overflow-y: auto;
-
-  padding: 20px;
+  padding: 20px 20px 132px;
 }
-
-
-/*
-|--------------------------------------------------------------------------
-| Nagłówek
-|--------------------------------------------------------------------------
-*/
 
 .sidebar-header {
   padding-right: 42px;
+  text-align: left;
+}
 
+.brand-lockup {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.brand-symbol {
+  display: block;
+  width: 50px;
+  height: 49px;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+
+.brand-board {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+.brand-board__row {
+  display: flex;
+  gap: 2px;
+}
+
+.brand-board__row span {
+  display: inline-flex;
+  width: 21px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #111820;
+  border-radius: 2px;
+  background:
+    linear-gradient(
+      to bottom,
+      #30343a 0%,
+      #30343a 48%,
+      #1f2227 49%,
+      #1f2227 100%
+    );
+  box-shadow:
+    inset 0 1px 0
+    rgba(255, 255, 255, 0.08);
+  color: #f3f4f6;
+  font-family:
+    "Courier New",
+    ui-monospace,
+    monospace;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
   text-align: center;
+  text-shadow:
+    0 1px 1px
+    rgba(0, 0, 0, 0.55);
 }
 
-
-.app-name {
-  color: #9ca3af;
-
-  font-size: 24px;
-  font-weight: 800;
-
-  line-height: 1.15;
+.brand-board__empty {
+  color: transparent;
 }
-
 
 .user-name {
   margin-top: 8px;
-
-  color: #666;
-
-  font-size: 12px;
+  padding: 0;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
 }
-
-
-/*
-|--------------------------------------------------------------------------
-| Główne zakładki
-|--------------------------------------------------------------------------
-*/
 
 .main-nav {
   display: grid;
-
-  grid-template-columns:
-    repeat(
-      4,
-      1fr
-    );
-
+  grid-template-columns: repeat(4, 1fr);
   gap: 3px;
-
-  margin-top: 25px;
-
+  margin-top: 18px;
   padding: 3px;
-
   background: #f2f2f2;
-
   border-radius: 10px;
 }
 
-
 .main-nav button {
   min-height: 42px;
-
-  padding:
-    7px 3px;
-
+  padding: 7px 3px;
   border: 0;
-
   border-radius: 7px;
-
   background: transparent;
-
   color: #555;
-
   cursor: pointer;
-
   font-size: 11px;
-
   transition:
     background 0.15s ease,
     color 0.15s ease,
     box-shadow 0.15s ease;
 }
 
-
 .main-nav button:hover {
-  background:
-    rgba(
-      255,
-      255,
-      255,
-      0.55
-    );
+  background: rgba(255, 255, 255, 0.55);
 }
-
 
 .main-nav button.active {
   background: white;
-
   color: #111;
-
   font-weight: 700;
-
-  box-shadow:
-    0 1px 5px
-    rgba(
-      0,
-      0,
-      0,
-      0.12
-    );
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.12);
 }
-
-
-/*
-|--------------------------------------------------------------------------
-| Scope
-|--------------------------------------------------------------------------
-*/
 
 .scope-section {
   margin-top: 18px;
 }
 
-
 .scope-title {
   margin-bottom: 9px;
-
   color: #777;
-
   font-size: 10px;
   font-weight: 700;
-
   text-align: center;
-
-  text-transform:
-    uppercase;
-
-  letter-spacing:
-    0.04em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
-
 
 .scope-switch {
   display: grid;
-
-  grid-template-columns:
-    repeat(
-      3,
-      1fr
-    );
-
+  grid-template-columns: repeat(3, 1fr);
   gap: 3px;
-
   padding: 3px;
-
   background: #f3f3f3;
-
   border-radius: 9px;
 }
 
-
 .scope-switch button {
   min-height: 39px;
-
-  padding:
-    6px 2px;
-
+  padding: 6px 2px;
   border: 0;
-
   border-radius: 7px;
-
   background: transparent;
-
   color: #666;
-
   cursor: pointer;
-
   font-size: 10px;
-
   transition:
     background 0.15s ease,
     color 0.15s ease,
     box-shadow 0.15s ease;
 }
 
-
 .scope-switch button:hover {
-  background:
-    rgba(
-      255,
-      255,
-      255,
-      0.5
-    );
+  background: rgba(255, 255, 255, 0.5);
 }
-
 
 .scope-switch button.active {
   background: white;
-
   color: #0b2d5c;
-
   font-weight: 700;
-
-  box-shadow:
-    0 1px 4px
-    rgba(
-      0,
-      0,
-      0,
-      0.1
-    );
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
-
-
-/*
-|--------------------------------------------------------------------------
-| Zakładka Mapa
-|--------------------------------------------------------------------------
-*/
 
 .tab-content,
 .account-placeholder {
@@ -1056,119 +857,223 @@ function formatDuration(
 }
 
 
+
 .main-stat {
-  padding: 14px;
-
-  background: #f4f4f4;
-
-  border-radius: 10px;
-
+  padding: 14px 14px 13px;
+  background: #f4f4f5;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
   text-align: center;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
-
 
 .main-stat strong {
   display: block;
-
   color: #9ca3af;
-
   font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
 }
-
 
 .main-stat span {
-  color: #666;
-
-  font-size: 11px;
+  display: block;
+  margin-top: 6px;
+  color: #666f7a;
+  font-size: 12px;
 }
-
 
 .stats-grid {
   display: grid;
-
-  grid-template-columns:
-    repeat(
-      2,
-      1fr
-    );
-
-  gap: 6px;
-
-  margin-top: 7px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 8px;
 }
 
-
-.stats-grid div {
-  padding: 10px;
-
-  border:
-    1px solid #e7e7e7;
-
-  border-radius: 8px;
-
+.stats-card {
+  display: flex;
+  min-height: 84px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 11px 9px;
+  border: 1px solid #d9e0e8;
+  border-radius: 12px;
+  background: #fbfbfc;
   text-align: center;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.035);
 }
 
-
-.stats-grid strong {
+.stats-card strong {
   display: block;
-
   color: #9ca3af;
-
-  font-size: 13px;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.15;
 }
 
-
-.stats-grid span {
+.stats-card span {
   display: block;
-
-  margin-top: 3px;
-
-  color: #777;
-
-  font-size: 10px;
+  margin-top: 7px;
+  color: #66707c;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.2;
 }
 
+.stats-card--link {
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    background 0.15s ease;
+}
 
-/*
-|--------------------------------------------------------------------------
-| Konto
-|--------------------------------------------------------------------------
-*/
+.stats-card--link:hover {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.07);
+  transform: translateY(-1px);
+}
+
+.stats-card--link:focus-visible {
+  outline: 2px solid rgba(11, 45, 92, 0.18);
+  outline-offset: 2px;
+}
 
 .account-placeholder {
-  padding:
-    20px 5px;
-
+  padding: 20px 5px;
   color: #666;
-
   font-size: 11px;
-
   text-align: center;
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Mobile
-|--------------------------------------------------------------------------
-*/
+.owner-brand {
+  position: absolute;
+  right: 20px;
+  bottom: 2px;
+  left: 20px;
+  z-index: 7;
+  display: flex;
+  min-height: 122px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 11px 8px 2px;
+  border-top: 1px solid rgba(0, 0, 0, 0.07);
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.78),
+      rgba(255, 255, 255, 0.99)
+    );
+  backdrop-filter: blur(8px);
+}
 
-@media (
-  max-width: 700px
-) {
+.owner-brand__logo-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+
+.owner-brand__logo-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.owner-brand__logo-link:focus-visible {
+  outline: 2px solid rgba(11, 45, 92, 0.18);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.owner-brand__logo {
+  display: block;
+  width: auto;
+  height: 50px;
+  object-fit: contain;
+}
+
+.owner-brand__tagline {
+  margin-top: 13px;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  text-align: center;
+  text-transform: none;
+}
+
+.owner-brand__destinations {
+  display: flex;
+  max-width: 310px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 2px 8px;
+  margin-top: 4px;
+  margin-bottom: 0;
+  line-height: 1.12;
+}
+
+.owner-brand__destinations a {
+  color: #8d95a1;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.045em;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color 0.15s ease;
+}
+
+.owner-brand__destinations a:hover {
+  color: #0b2d5c;
+  text-decoration: underline;
+}
+
+@media (max-width: 700px) {
   .sidebar {
     top: 10px;
     left: 10px;
-
-    width:
-      calc(
-        100% - 20px
-      );
-
+    width: calc(100% - 20px);
     max-height: 55vh;
   }
 
+  .brand-symbol {
+    width: 44px;
+    height: 43px;
+  }
+
+  .brand-board__row span {
+    width: 19px;
+    height: 20px;
+    font-size: 14px;
+  }
+
+  .user-name {
+    padding-left: 54px;
+    font-size: 13px;
+  }
+
+  .owner-brand {
+    right: 14px;
+    left: 14px;
+    min-height: 116px;
+  }
+
+  .owner-brand__logo {
+    height: 46px;
+  }
+
+  .owner-brand__destinations {
+    max-width: 280px;
+  }
 
   .sidebar--collapsed {
     width: 52px;

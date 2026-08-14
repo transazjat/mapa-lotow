@@ -822,35 +822,34 @@ function flagClass(
 
 .flight-count {
   display: flex;
-
   align-items: baseline;
-
   gap: 8px;
-
   margin-top: 10px;
-
-  padding:
-    10px 12px;
-
+  padding: 10px 12px;
   background: #f4f4f4;
-
   border-radius: 9px;
+  color: #9ca3af;
 }
 
 
 .flight-count strong {
   color: #222;
-
   font-size: 30px;
-
   line-height: 1;
 }
 
 
 .flight-count span {
   color: #666;
-
   font-size: 12px;
+}
+
+.flight-count strong,
+.flight-count b,
+.flight-count .value,
+.flight-count span,
+.flight-count .label {
+  color: #9ca3af;
 }
 
 

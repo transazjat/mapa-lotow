@@ -19,12 +19,14 @@ import {
 const props = defineProps<{
   flights: Flight[]
   activeFlightId: number | null
+  initialAircraftFilterKey?: string | null
 }>()
 
 
 const emit = defineEmits<{
   flight: [flight: Flight]
   filtered: [flights: Flight[]]
+  aircraftFilterChanged: [key: string | null]
 }>()
 
 
@@ -42,6 +44,13 @@ const selectedFlightType =
 
 const selectedAirline =
   ref('all')
+
+
+const selectedAircraft =
+  ref<string>(
+    props.initialAircraftFilterKey ??
+    'all',
+  )
 
 
 const sortOrder =
@@ -149,6 +158,77 @@ const airlines =
   )
 
 
+
+interface AircraftOption {
+  key: string
+  name: string
+}
+
+
+function aircraftKey(
+  flight: Flight,
+): string {
+  if (
+    flight.aircraft_type_id !==
+    null
+  ) {
+    return `id:${flight.aircraft_type_id}`
+  }
+
+  return `name:${flight.aircraft_name ?? ''}`
+}
+
+
+const aircraftTypes =
+  computed<AircraftOption[]>(
+    () => {
+      const result =
+        new Map<
+          string,
+          AircraftOption
+        >()
+
+      for (
+        const flight
+        of props.flights
+      ) {
+        if (
+          !flight.aircraft_name
+        ) {
+          continue
+        }
+
+        const key =
+          aircraftKey(
+            flight,
+          )
+
+        result.set(
+          key,
+          {
+            key,
+            name:
+              flight.aircraft_name,
+          },
+        )
+      }
+
+      return [...result.values()]
+        .sort(
+          (a, b) =>
+            a.name.localeCompare(
+              b.name,
+              undefined,
+              {
+                sensitivity:
+                  'base',
+              },
+            ),
+        )
+    },
+  )
+
+
 const filteredFlights =
   computed(
     () => {
@@ -190,6 +270,18 @@ const filteredFlights =
                 flight,
               ) !==
                 selectedAirline.value
+            ) {
+              return false
+            }
+
+
+            if (
+              selectedAircraft.value !==
+                'all' &&
+              aircraftKey(
+                flight,
+              ) !==
+                selectedAircraft.value
             ) {
               return false
             }
@@ -266,8 +358,36 @@ const filtersActive =
       selectedYear.value !== 'all' ||
       selectedFlightType.value !== 'all' ||
       selectedAirline.value !== 'all' ||
+      selectedAircraft.value !== 'all' ||
       sortOrder.value !== 'newest',
   )
+
+
+watch(
+  () =>
+    props.initialAircraftFilterKey,
+
+  (value) => {
+    selectedAircraft.value =
+      value ??
+      'all'
+  },
+)
+
+
+watch(
+  selectedAircraft,
+
+  (value) => {
+    emit(
+      'aircraftFilterChanged',
+      value ===
+        'all'
+        ? null
+        : value,
+    )
+  },
+)
 
 
 watch(
@@ -297,6 +417,9 @@ function resetFilters(): void {
     'all'
 
   selectedAirline.value =
+    'all'
+
+  selectedAircraft.value =
     'all'
 
   sortOrder.value =
@@ -420,6 +543,28 @@ function formatNumber(
             :value="airline.key"
           >
             {{ airline.name }}
+          </option>
+        </select>
+
+      </div>
+
+
+      <div class="filter-row filter-row--single">
+
+        <select
+          v-model="selectedAircraft"
+          class="filter-control"
+        >
+          <option value="all">
+            Wszystkie samoloty
+          </option>
+
+          <option
+            v-for="aircraftType in aircraftTypes"
+            :key="aircraftType.key"
+            :value="aircraftType.key"
+          >
+            {{ aircraftType.name }}
           </option>
         </select>
 
@@ -650,6 +795,12 @@ function formatNumber(
   gap: 6px;
 
   margin-top: 6px;
+}
+
+
+.filter-row--single {
+  grid-template-columns:
+    1fr;
 }
 
 
