@@ -1,315 +1,168 @@
 <script setup lang="ts">
-import {
-  computed,
-} from 'vue'
-
-import type {
-  Flight,
-} from '../types/flight'
-
+import { computed } from 'vue'
+import type { Flight } from '../types/flight'
 
 const props = defineProps<{
   flights: Flight[]
 }>()
 
-
 const emit = defineEmits<{
   airports: []
-
-  report: [
-    type:
-      | 'flights'
-      | 'distance'
-      | 'duration',
-  ]
+  report: [type: 'flights' | 'distance' | 'duration']
+  section: [type: 'airlines' | 'aircraft' | 'routes']
 }>()
 
+const totalDistance = computed(() =>
+  props.flights.reduce(
+    (sum, flight) => sum + (flight.distance_km ?? 0),
+    0,
+  ),
+)
 
-const totalDistance =
-  computed(
-    () =>
-      props.flights.reduce(
-        (sum, flight) =>
-          sum +
-          (
-            flight.distance_km ??
-            0
-          ),
-        0,
+const totalDuration = computed(() =>
+  props.flights.reduce(
+    (sum, flight) => sum + (flight.duration_seconds ?? 0),
+    0,
+  ),
+)
+
+const airports = computed(() => {
+  const ids = new Set<number>()
+
+  for (const flight of props.flights) {
+    ids.add(flight.departure_airport_id)
+    ids.add(flight.arrival_airport_id)
+  }
+
+  return ids.size
+})
+
+const airlines = computed(
+  () =>
+    new Set(
+      props.flights
+        .map((flight) => flight.airline_id)
+        .filter((value): value is number => value !== null),
+    ).size,
+)
+
+const aircraft = computed(
+  () =>
+    new Set(
+      props.flights
+        .map((flight) => flight.aircraft_type_id)
+        .filter((value): value is number => value !== null),
+    ).size,
+)
+
+const routes = computed(
+  () =>
+    new Set(
+      props.flights.map(
+        (flight) =>
+          `${flight.departure_airport_id}>${flight.arrival_airport_id}`,
       ),
-  )
+    ).size,
+)
 
-
-const totalDuration =
-  computed(
-    () =>
-      props.flights.reduce(
-        (sum, flight) =>
-          sum +
-          (
-            flight.duration_seconds ??
-            0
-          ),
-        0,
-      ),
-  )
-
-
-const airports =
-  computed(
-    () => {
-      const ids =
-        new Set<number>()
-
-      for (
-        const flight
-        of props.flights
-      ) {
-        ids.add(
-          flight.departure_airport_id,
-        )
-
-        ids.add(
-          flight.arrival_airport_id,
-        )
-      }
-
-      return ids.size
-    },
-  )
-
-
-const airlines =
-  computed(
-    () =>
-      new Set(
-        props.flights
-          .map(
-            (flight) =>
-              flight.airline_id,
-          )
-          .filter(
-            (
-              value,
-            ): value is number =>
-              value !== null,
-          ),
-      ).size,
-  )
-
-
-const aircraft =
-  computed(
-    () =>
-      new Set(
-        props.flights
-          .map(
-            (flight) =>
-              flight.aircraft_type_id,
-          )
-          .filter(
-            (
-              value,
-            ): value is number =>
-              value !== null,
-          ),
-      ).size,
-  )
-
-
-const routes =
-  computed(
-    () =>
-      new Set(
-        props.flights.map(
-          (flight) =>
-            `${flight.departure_airport_id}>${flight.arrival_airport_id}`,
-        ),
-      ).size,
-  )
-
-
-function formatNumber(
-  value: number,
-): string {
-  return new Intl.NumberFormat(
-    undefined,
-  ).format(value)
+function formatNumber(value: number): string {
+  return new Intl.NumberFormat(undefined).format(value)
 }
 
-
-function formatDuration(
-  seconds: number,
-): string {
-  const totalMinutes =
-    Math.floor(
-      seconds / 60,
-    )
-
-  const hours =
-    Math.floor(
-      totalMinutes / 60,
-    )
-
-  const minutes =
-    totalMinutes % 60
+function formatDuration(seconds: number): string {
+  const totalMinutes = Math.floor(seconds / 60)
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
 
   return `${formatNumber(hours)} h ${minutes} min`
 }
-</script>
 
+function openPlaceholderSection(
+  type: 'airlines' | 'aircraft' | 'routes',
+): void {
+  emit('section', type)
+}
+</script>
 
 <template>
   <section class="statistics-panel">
-
     <section class="primary-summary">
-
       <button
         type="button"
         class="primary-card"
-        @click="
-          emit(
-            'report',
-            'flights',
-          )
-        "
+        @click="emit('report', 'flights')"
       >
-
         <div class="primary-card__content">
-
           <strong>
-            {{
-              formatNumber(
-                flights.length,
-              )
-            }}
+            {{ formatNumber(flights.length) }}
           </strong>
 
-          <span>
-            lotów
-          </span>
-
+          <span>lotów</span>
         </div>
 
-
         <div class="details-button">
-
           <svg
             viewBox="0 0 24 24"
             aria-hidden="true"
           >
-            <path
-              d="M9 5l7 7-7 7"
-            />
+            <path d="M9 5l7 7-7 7" />
           </svg>
-
         </div>
-
       </button>
-
 
       <button
         type="button"
         class="primary-card"
-        @click="
-          emit(
-            'report',
-            'distance',
-          )
-        "
+        @click="emit('report', 'distance')"
       >
-
         <div class="primary-card__content">
-
           <strong>
-            {{
-              formatNumber(
-                totalDistance,
-              )
-            }}
+            {{ formatNumber(totalDistance) }}
           </strong>
 
-          <span>
-            kilometrów
-          </span>
-
+          <span>kilometrów</span>
         </div>
 
-
         <div class="details-button">
-
           <svg
             viewBox="0 0 24 24"
             aria-hidden="true"
           >
-            <path
-              d="M9 5l7 7-7 7"
-            />
+            <path d="M9 5l7 7-7 7" />
           </svg>
-
         </div>
-
       </button>
-
 
       <button
         type="button"
         class="primary-card"
-        @click="
-          emit(
-            'report',
-            'duration',
-          )
-        "
+        @click="emit('report', 'duration')"
       >
-
         <div class="primary-card__content">
-
           <strong>
-            {{
-              formatDuration(
-                totalDuration,
-              )
-            }}
+            {{ formatDuration(totalDuration) }}
           </strong>
 
-          <span>
-            w powietrzu
-          </span>
-
+          <span>w powietrzu</span>
         </div>
 
-
         <div class="details-button">
-
           <svg
             viewBox="0 0 24 24"
             aria-hidden="true"
           >
-            <path
-              d="M9 5l7 7-7 7"
-            />
+            <path d="M9 5l7 7-7 7" />
           </svg>
-
         </div>
-
       </button>
-
     </section>
 
-
     <section class="statistics-menu">
-
       <button
         type="button"
         class="statistics-menu-card statistics-menu-card--active"
-        @click="
-          emit(
-            'airports',
-          )
-        "
+        @click="emit('airports')"
       >
-
         <div class="statistics-menu-card__value">
           {{ airports }}
         </div>
@@ -321,12 +174,13 @@ function formatDuration(
         <div class="statistics-menu-card__more">
           Szczegóły →
         </div>
-
       </button>
 
-
-      <div class="statistics-menu-card">
-
+      <button
+        type="button"
+        class="statistics-menu-card"
+        @click="openPlaceholderSection('airlines')"
+      >
         <div class="statistics-menu-card__value">
           {{ airlines }}
         </div>
@@ -336,14 +190,15 @@ function formatDuration(
         </div>
 
         <div class="statistics-menu-card__more statistics-menu-card__more--muted">
-          wkrótce
+          Szczegóły →
         </div>
+      </button>
 
-      </div>
-
-
-      <div class="statistics-menu-card">
-
+      <button
+        type="button"
+        class="statistics-menu-card"
+        @click="openPlaceholderSection('aircraft')"
+      >
         <div class="statistics-menu-card__value">
           {{ aircraft }}
         </div>
@@ -353,14 +208,15 @@ function formatDuration(
         </div>
 
         <div class="statistics-menu-card__more statistics-menu-card__more--muted">
-          wkrótce
+          Szczegóły →
         </div>
+      </button>
 
-      </div>
-
-
-      <div class="statistics-menu-card">
-
+      <button
+        type="button"
+        class="statistics-menu-card"
+        @click="openPlaceholderSection('routes')"
+      >
         <div class="statistics-menu-card__value">
           {{ routes }}
         </div>
@@ -370,49 +226,40 @@ function formatDuration(
         </div>
 
         <div class="statistics-menu-card__more statistics-menu-card__more--muted">
-          wkrótce
+          Szczegóły →
         </div>
-
-      </div>
-
+      </button>
     </section>
-
   </section>
 </template>
 
-
 <style scoped>
 .statistics-panel {
-  margin-top: 14px;
+  margin-top: 10px;
 }
-
 
 .primary-summary {
   display: grid;
-
-  gap: 7px;
+  gap: 6px;
 }
-
 
 .primary-card {
   display: grid;
 
   width: 100%;
-  min-height: 88px;
+  min-height: 82px;
 
   grid-template-columns:
-    1fr 42px;
+    1fr 46px;
 
   align-items: stretch;
 
-  padding:
-    8px;
+  padding: 7px;
 
-  border: 0;
+  border: 1px solid #e1e4e8;
+  border-radius: 11px;
 
-  border-radius: 10px;
-
-  background: #f4f4f4;
+  background: #f3f4f6;
 
   cursor: pointer;
 
@@ -420,17 +267,27 @@ function formatDuration(
 
   transition:
     background 0.15s ease,
-    transform 0.15s ease;
+    border-color 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
-
 .primary-card:hover {
-  background: #eeeeee;
+  border-color: #d6dae0;
+  background: #eef0f3;
 
   transform:
     translateY(-1px);
-}
 
+  box-shadow:
+    0 3px 10px
+    rgba(
+      0,
+      0,
+      0,
+      0.04
+    );
+}
 
 .primary-card__content {
   display: flex;
@@ -444,31 +301,22 @@ function formatDuration(
   padding-left: 8px;
 }
 
-
 .primary-card strong {
-  color: #9ca3af;
+  color: #969eaa;
 
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 700;
 
-  line-height: 1.1;
+  line-height: 1.05;
 }
-
 
 .primary-card span {
-  margin-top: 8px;
+  margin-top: 5px;
 
-  color: #777;
+  color: #666f7a;
 
-  font-size: 11px;
+  font-size: 12px;
 }
-
-
-/*
-|--------------------------------------------------------------------------
-| Prawy przycisk
-|--------------------------------------------------------------------------
-*/
 
 .details-button {
   display: flex;
@@ -478,28 +326,12 @@ function formatDuration(
   justify-content: center;
 
   width: 100%;
-  height: 100%;
+  min-height: 66px;
 
-  min-height: 72px;
+  border: 1px solid #dde1e6;
+  border-radius: 9px;
 
-  border:
-    1px solid
-    rgba(
-      156,
-      163,
-      175,
-      0.26
-    );
-
-  border-radius: 8px;
-
-  background:
-    rgba(
-      255,
-      255,
-      255,
-      0.8
-    );
+  background: #f7f8fa;
 
   color: #9ca3af;
 
@@ -509,46 +341,29 @@ function formatDuration(
     border-color 0.15s ease;
 }
 
-
 .details-button svg {
-  width: 18px;
-  height: 18px;
-
   display: block;
 
-  fill: none;
+  width: 17px;
+  height: 17px;
 
+  fill: none;
   stroke: currentColor;
 
   stroke-width: 2;
 
   stroke-linecap: round;
-
   stroke-linejoin: round;
 }
 
-
 .primary-card:hover
 .details-button {
-  border-color:
-    rgba(
-      11,
-      45,
-      92,
-      0.18
-    );
+  border-color: #d4d9df;
 
-  background: #fff;
+  background: #fafbfc;
 
-  color: #0b2d5c;
+  color: #7f8894;
 }
-
-
-/*
-|--------------------------------------------------------------------------
-| Spis treści
-|--------------------------------------------------------------------------
-*/
 
 .statistics-menu {
   display: grid;
@@ -558,14 +373,13 @@ function formatDuration(
 
   gap: 7px;
 
-  margin-top: 9px;
+  margin-top: 8px;
 }
-
 
 .statistics-menu-card {
   display: flex;
 
-  min-height: 96px;
+  min-height: 108px;
 
   flex-direction: column;
 
@@ -574,93 +388,82 @@ function formatDuration(
   justify-content: center;
 
   padding:
-    10px 8px;
+    9px 8px;
 
-  border:
-    1px solid #e4e4e4;
-
-  border-radius: 9px;
+  border: 1px solid #d9dde3;
+  border-radius: 10px;
 
   background:
     rgba(
       255,
       255,
       255,
-      0.78
+      0.9
     );
 
   text-align: center;
-}
 
-
-button.statistics-menu-card {
   cursor: pointer;
 
   transition:
     background 0.15s ease,
     border-color 0.15s ease,
-    transform 0.15s ease;
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
+.statistics-menu-card:hover {
+  border-color: #cfd5dc;
 
-button.statistics-menu-card:hover {
-  border-color:
-    rgba(
-      11,
-      45,
-      92,
-      0.18
-    );
-
-  background:
-    rgba(
-      11,
-      45,
-      92,
-      0.035
-    );
+  background: #fafbfc;
 
   transform:
     translateY(-1px);
-}
 
+  box-shadow:
+    0 3px 10px
+    rgba(
+      0,
+      0,
+      0,
+      0.04
+    );
+}
 
 .statistics-menu-card--active {
   border-left:
     3px solid #9ca3af;
 }
 
-
 .statistics-menu-card__value {
-  color: #9ca3af;
+  color: #969eaa;
 
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
-}
 
+  line-height: 1;
+}
 
 .statistics-menu-card__label {
   margin-top: 6px;
 
-  color: #666;
+  color: #606771;
 
-  font-size: 11px;
+  font-size: 13px;
 }
-
 
 .statistics-menu-card__more {
   margin-top: 10px;
 
-  color: #6b7280;
+  color: #5f6671;
 
   font-size: 11px;
   font-weight: 650;
 }
 
-
 .statistics-menu-card__more--muted {
-  color: #aaa;
+  color: #8f97a3;
 
-  font-weight: 500;
+  font-weight: 600;
 }
 </style>

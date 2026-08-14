@@ -33,17 +33,21 @@ const props = defineProps<{
 const emit = defineEmits<{
   toggle: []
 
-  tab:
-    [tab: SidebarTab]
+  tab: [
+    tab: SidebarTab,
+  ]
 
-  scope:
-    [scope: FlightScope]
+  scope: [
+    scope: FlightScope,
+  ]
 
-  flight:
-    [flight: Flight]
+  flight: [
+    flight: Flight,
+  ]
 
-  filteredFlights:
-    [flights: Flight[]]
+  filteredFlights: [
+    flights: Flight[],
+  ]
 
   statisticsAirports: []
 
@@ -52,10 +56,15 @@ const emit = defineEmits<{
       | 'flights'
       | 'distance'
       | 'duration',
-  ]  
-
+  ]
 }>()
 
+
+/*
+|--------------------------------------------------------------------------
+| Podstawowe statystyki mapy
+|--------------------------------------------------------------------------
+*/
 
 const totalDistance =
   computed(
@@ -161,6 +170,12 @@ const routes =
   )
 
 
+/*
+|--------------------------------------------------------------------------
+| Formatowanie
+|--------------------------------------------------------------------------
+*/
+
 function formatNumber(
   value: number,
 ): string {
@@ -173,20 +188,20 @@ function formatNumber(
 function formatDuration(
   seconds: number,
 ): string {
-  const minutes =
+  const totalMinutes =
     Math.floor(
       seconds / 60,
     )
 
   const hours =
     Math.floor(
-      minutes / 60,
+      totalMinutes / 60,
     )
 
-  const rest =
-    minutes % 60
+  const minutes =
+    totalMinutes % 60
 
-  return `${formatNumber(hours)} h ${rest} min`
+  return `${formatNumber(hours)} h ${minutes} min`
 }
 </script>
 
@@ -200,23 +215,58 @@ function formatDuration(
     }"
   >
 
+    <!-- ============================================================= -->
+    <!-- ZWIJANIE PANELU                                                -->
+    <!-- ============================================================= -->
+
     <button
       type="button"
       class="sidebar-toggle"
+      :title="
+        collapsed
+          ? 'Rozwiń panel'
+          : 'Zwiń panel'
+      "
+      :aria-label="
+        collapsed
+          ? 'Rozwiń panel'
+          : 'Zwiń panel'
+      "
       @click="
         emit(
           'toggle',
         )
       "
     >
-      {{ collapsed ? '›' : '‹' }}
+
+      <svg
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+        :class="{
+          'sidebar-toggle__icon--collapsed':
+            collapsed,
+        }"
+      >
+        <path
+          d="M14 6l-6 6 6 6"
+        />
+      </svg>
+
     </button>
 
+
+    <!-- ============================================================= -->
+    <!-- ZAWARTOŚĆ SIDEBARA                                             -->
+    <!-- ============================================================= -->
 
     <div
       v-if="!collapsed"
       class="sidebar-content"
     >
+
+      <!-- =========================================================== -->
+      <!-- NAGŁÓWEK                                                    -->
+      <!-- =========================================================== -->
 
       <header class="sidebar-header">
 
@@ -230,6 +280,10 @@ function formatDuration(
 
       </header>
 
+
+      <!-- =========================================================== -->
+      <!-- NAWIGACJA                                                   -->
+      <!-- =========================================================== -->
 
       <nav class="main-nav">
 
@@ -307,6 +361,10 @@ function formatDuration(
       </nav>
 
 
+      <!-- =========================================================== -->
+      <!-- GLOBALNY ZAKRES LOTÓW                                       -->
+      <!-- =========================================================== -->
+
       <section class="scope-section">
 
         <div class="scope-title">
@@ -373,6 +431,10 @@ function formatDuration(
 
       </section>
 
+
+      <!-- =========================================================== -->
+      <!-- MAPA                                                        -->
+      <!-- =========================================================== -->
 
       <section
         v-if="
@@ -491,13 +553,19 @@ function formatDuration(
       </section>
 
 
+      <!-- =========================================================== -->
+      <!-- LOTY                                                        -->
+      <!-- =========================================================== -->
+
       <FlightsPanel
         v-else-if="
           activeTab ===
           'flights'
         "
 
-        :flights="flights"
+        :flights="
+          flights
+        "
 
         :active-flight-id="
           activeFlightId
@@ -519,13 +587,19 @@ function formatDuration(
       />
 
 
+      <!-- =========================================================== -->
+      <!-- STATYSTYKI                                                   -->
+      <!-- =========================================================== -->
+
       <StatisticsPanel
         v-else-if="
           activeTab ===
           'statistics'
         "
 
-        :flights="flights"
+        :flights="
+          flights
+        "
 
         @airports="
           emit(
@@ -541,6 +615,10 @@ function formatDuration(
         "
       />
 
+
+      <!-- =========================================================== -->
+      <!-- KONTO                                                       -->
+      <!-- =========================================================== -->
 
       <section
         v-else
@@ -564,6 +642,12 @@ function formatDuration(
 
 
 <style scoped>
+/*
+|--------------------------------------------------------------------------
+| Sidebar
+|--------------------------------------------------------------------------
+*/
+
 .sidebar {
   position: absolute;
 
@@ -618,34 +702,120 @@ function formatDuration(
 }
 
 
+/*
+|--------------------------------------------------------------------------
+| Przycisk zwijania
+|--------------------------------------------------------------------------
+|
+| Celowo trochę wyraźniejszy niż wcześniej,
+| ale nadal spokojny i zgodny z resztą interfejsu.
+|
+*/
+
 .sidebar-toggle {
   position: absolute;
 
   top: 10px;
   right: 10px;
 
-  z-index: 2;
+  z-index: 5;
 
-  width: 32px;
-  height: 32px;
+  display: flex;
 
-  border: 0;
+  width: 34px;
+  height: 34px;
 
-  border-radius: 8px;
+  align-items: center;
 
-  background:
+  justify-content: center;
+
+  padding: 0;
+
+  border:
+    1px solid #d9dde2;
+
+  border-radius: 9px;
+
+  background: #eef0f2;
+
+  color: #8a929d;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 1px 4px
     rgba(
       0,
       0,
       0,
-      0.06
+      0.055
     );
 
-  cursor: pointer;
-
-  font-size: 24px;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
+
+.sidebar-toggle:hover {
+  border-color: #cbd1d8;
+
+  background: #e5e8ec;
+
+  color: #697482;
+
+  box-shadow:
+    0 2px 6px
+    rgba(
+      0,
+      0,
+      0,
+      0.075
+    );
+}
+
+
+.sidebar-toggle svg {
+  display: block;
+
+  width: 17px;
+  height: 17px;
+
+  fill: none;
+
+  stroke: currentColor;
+
+  stroke-width: 2.2;
+
+  stroke-linecap: round;
+
+  stroke-linejoin: round;
+
+  transition:
+    transform 0.2s ease;
+}
+
+
+/*
+ * Po zwinięciu strzałka wskazuje
+ * kierunek rozwijania.
+ */
+
+.sidebar-toggle__icon--collapsed {
+  transform:
+    rotate(
+      180deg
+    );
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Zawartość
+|--------------------------------------------------------------------------
+*/
 
 .sidebar-content {
   max-height:
@@ -659,25 +829,43 @@ function formatDuration(
 }
 
 
+/*
+|--------------------------------------------------------------------------
+| Nagłówek
+|--------------------------------------------------------------------------
+*/
+
 .sidebar-header {
   padding-right: 42px;
+
+  text-align: center;
 }
 
 
 .app-name {
-  font-size: 21px;
+  color: #9ca3af;
+
+  font-size: 24px;
   font-weight: 800;
+
+  line-height: 1.15;
 }
 
 
 .user-name {
-  margin-top: 2px;
+  margin-top: 8px;
 
   color: #666;
 
   font-size: 12px;
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| Główne zakładki
+|--------------------------------------------------------------------------
+*/
 
 .main-nav {
   display: grid;
@@ -690,23 +878,25 @@ function formatDuration(
 
   gap: 3px;
 
-  margin-top: 17px;
+  margin-top: 25px;
 
   padding: 3px;
 
   background: #f2f2f2;
 
-  border-radius: 9px;
+  border-radius: 10px;
 }
 
 
 .main-nav button {
+  min-height: 42px;
+
   padding:
     7px 3px;
 
   border: 0;
 
-  border-radius: 6px;
+  border-radius: 7px;
 
   background: transparent;
 
@@ -715,6 +905,22 @@ function formatDuration(
   cursor: pointer;
 
   font-size: 11px;
+
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+
+.main-nav button:hover {
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.55
+    );
 }
 
 
@@ -726,7 +932,7 @@ function formatDuration(
   font-weight: 700;
 
   box-shadow:
-    0 1px 4px
+    0 1px 5px
     rgba(
       0,
       0,
@@ -736,18 +942,26 @@ function formatDuration(
 }
 
 
+/*
+|--------------------------------------------------------------------------
+| Scope
+|--------------------------------------------------------------------------
+*/
+
 .scope-section {
-  margin-top: 12px;
+  margin-top: 18px;
 }
 
 
 .scope-title {
-  margin-bottom: 5px;
+  margin-bottom: 9px;
 
   color: #777;
 
   font-size: 10px;
   font-weight: 700;
+
+  text-align: center;
 
   text-transform:
     uppercase;
@@ -772,17 +986,19 @@ function formatDuration(
 
   background: #f3f3f3;
 
-  border-radius: 8px;
+  border-radius: 9px;
 }
 
 
 .scope-switch button {
+  min-height: 39px;
+
   padding:
     6px 2px;
 
   border: 0;
 
-  border-radius: 6px;
+  border-radius: 7px;
 
   background: transparent;
 
@@ -791,6 +1007,22 @@ function formatDuration(
   cursor: pointer;
 
   font-size: 10px;
+
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+
+.scope-switch button:hover {
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.5
+    );
 }
 
 
@@ -812,6 +1044,12 @@ function formatDuration(
 }
 
 
+/*
+|--------------------------------------------------------------------------
+| Zakładka Mapa
+|--------------------------------------------------------------------------
+*/
+
 .tab-content,
 .account-placeholder {
   margin-top: 14px;
@@ -824,11 +1062,15 @@ function formatDuration(
   background: #f4f4f4;
 
   border-radius: 10px;
+
+  text-align: center;
 }
 
 
 .main-stat strong {
   display: block;
+
+  color: #9ca3af;
 
   font-size: 30px;
 }
@@ -863,11 +1105,15 @@ function formatDuration(
     1px solid #e7e7e7;
 
   border-radius: 8px;
+
+  text-align: center;
 }
 
 
 .stats-grid strong {
   display: block;
+
+  color: #9ca3af;
 
   font-size: 13px;
 }
@@ -876,13 +1122,19 @@ function formatDuration(
 .stats-grid span {
   display: block;
 
-  margin-top: 2px;
+  margin-top: 3px;
 
   color: #777;
 
   font-size: 10px;
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| Konto
+|--------------------------------------------------------------------------
+*/
 
 .account-placeholder {
   padding:
@@ -891,8 +1143,16 @@ function formatDuration(
   color: #666;
 
   font-size: 11px;
+
+  text-align: center;
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| Mobile
+|--------------------------------------------------------------------------
+*/
 
 @media (
   max-width: 700px
@@ -912,6 +1172,7 @@ function formatDuration(
 
   .sidebar--collapsed {
     width: 52px;
+    height: 52px;
   }
 }
 </style>

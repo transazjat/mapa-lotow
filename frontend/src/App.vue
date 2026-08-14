@@ -8,7 +8,7 @@ import {
 
 import {
   LngLatBounds,
-  Map,
+  Map as MapLibreMap,
   setWorkerUrl,
 } from 'maplibre-gl'
 
@@ -106,13 +106,13 @@ const mapContainer =
 
 
 let mapInstance:
-  Map | null =
+  MapLibreMap | null =
   null
 
 
 /*
 |--------------------------------------------------------------------------
-| Dane lotów
+| Dane
 |--------------------------------------------------------------------------
 */
 
@@ -122,23 +122,11 @@ const allFlights =
   )
 
 
-/*
-|--------------------------------------------------------------------------
-| Globalny zakres lotów
-|--------------------------------------------------------------------------
-*/
-
 const scope =
   ref<FlightScope>(
     'completed',
   )
 
-
-/*
-|--------------------------------------------------------------------------
-| Nawigacja lewego panelu
-|--------------------------------------------------------------------------
-*/
 
 const activeTab =
   ref<SidebarTab>(
@@ -152,7 +140,7 @@ const sidebarCollapsed =
 
 /*
 |--------------------------------------------------------------------------
-| Zaznaczenia na mapie
+| Zaznaczenia
 |--------------------------------------------------------------------------
 */
 
@@ -167,12 +155,6 @@ const selectedRoute =
     null,
   )
 
-
-/*
-|--------------------------------------------------------------------------
-| Konkretny lot
-|--------------------------------------------------------------------------
-*/
 
 const selectedFlightId =
   ref<number | null>(
@@ -198,7 +180,7 @@ const flightError =
 
 /*
 |--------------------------------------------------------------------------
-| Statystyki - szerokie panele
+| Statystyki
 |--------------------------------------------------------------------------
 */
 
@@ -219,13 +201,8 @@ const statisticsReport =
 
 /*
 |--------------------------------------------------------------------------
-| Loty po globalnym scope
+| Globalny zakres
 |--------------------------------------------------------------------------
-|
-| completed  -> tylko odbyte
-| all        -> odbyte + zaplanowane
-| planned    -> tylko zaplanowane
-|
 */
 
 const visibleFlights =
@@ -240,7 +217,7 @@ const visibleFlights =
 
 /*
 |--------------------------------------------------------------------------
-| Aktualny wynik wyszukiwarki w zakładce Loty
+| Filtry zakładki Loty
 |--------------------------------------------------------------------------
 */
 
@@ -249,16 +226,6 @@ const filteredFlights =
     [],
   )
 
-
-/*
-|--------------------------------------------------------------------------
-| Loty aktualnie prezentowane na mapie
-|--------------------------------------------------------------------------
-|
-| W zakładce Loty mapa respektuje wszystkie filtry.
-| W pozostałych zakładkach respektuje globalny scope.
-|
-*/
 
 const mapFlights =
   computed(
@@ -277,12 +244,12 @@ const mapFlights =
 
 /*
 |--------------------------------------------------------------------------
-| Dopasowanie widoku mapy
+| Dopasowanie mapy do wyniku filtrów
 |--------------------------------------------------------------------------
 */
 
 function fitMapToFlights(
-  map: Map,
+  map: MapLibreMap,
   flights: Flight[],
 ): void {
   if (
@@ -401,23 +368,12 @@ function toggleSidebar(): void {
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Zmiana głównej zakładki
-|--------------------------------------------------------------------------
-*/
-
 function changeTab(
   tab: SidebarTab,
 ): void {
   activeTab.value =
     tab
 
-
-  /*
-   * Po wyjściu ze Statystyk
-   * zamykamy szerokie raporty.
-   */
 
   if (
     tab !==
@@ -431,12 +387,6 @@ function changeTab(
   }
 
 
-  /*
-   * Po wyjściu z Lotów
-   * mapa wraca do pełnego
-   * zbioru danego scope.
-   */
-
   if (
     tab !==
     'flights'
@@ -446,12 +396,6 @@ function changeTab(
   }
 }
 
-
-/*
-|--------------------------------------------------------------------------
-| Zmiana globalnego scope
-|--------------------------------------------------------------------------
-*/
 
 function changeScope(
   value: FlightScope,
@@ -465,21 +409,8 @@ function changeScope(
       allFlights.value,
       value,
     )
-
-
-  /*
-   * Szerokie raporty statystyczne
-   * mogą pozostać otwarte.
-   * Ich dane zmienią się reaktywnie.
-   */
 }
 
-
-/*
-|--------------------------------------------------------------------------
-| Wynik filtrów zakładki Loty
-|--------------------------------------------------------------------------
-*/
 
 function receiveFilteredFlights(
   flights: Flight[],
@@ -491,7 +422,7 @@ function receiveFilteredFlights(
 
 /*
 |--------------------------------------------------------------------------
-| Statystyki - lotniska
+| Statystyki
 |--------------------------------------------------------------------------
 */
 
@@ -533,12 +464,6 @@ function closeAirportStatistics(): void {
     false
 }
 
-
-/*
-|--------------------------------------------------------------------------
-| Statystyki - raporty liczbowe
-|--------------------------------------------------------------------------
-*/
 
 function openStatisticsReport(
   report:
@@ -585,7 +510,322 @@ function closeStatisticsReport(): void {
 
 /*
 |--------------------------------------------------------------------------
-| Przejście z tabeli statystycznej do panelu lotniska
+| Budowanie danych panelu lotniska
+|--------------------------------------------------------------------------
+|
+| Dzięki temu możemy otworzyć panel dowolnego lotniska
+| nie tylko po kliknięciu punktu na mapie, ale również
+| po kliknięciu kodu IATA w innym panelu lotniska.
+|
+*/
+
+function buildAirportFromCode(
+  code: string,
+): SelectedAirport | null {
+  const flights =
+    mapFlights.value
+
+
+  const matchingFlight =
+    flights.find(
+      (flight) =>
+        flight.departure_iata ===
+          code ||
+        flight.arrival_iata ===
+          code,
+    )
+
+
+  if (!matchingFlight) {
+    return null
+  }
+
+
+  const isDeparture =
+    matchingFlight.departure_iata ===
+    code
+
+
+  const airportId =
+    isDeparture
+      ? matchingFlight.departure_airport_id
+      : matchingFlight.arrival_airport_id
+
+
+  const airportName =
+    isDeparture
+      ? matchingFlight.departure_airport_name
+      : matchingFlight.arrival_airport_name
+
+
+  const airportCity =
+    isDeparture
+      ? matchingFlight.departure_city
+      : matchingFlight.arrival_city
+
+
+  const longitude =
+    Number(
+      isDeparture
+        ? matchingFlight.departure_longitude
+        : matchingFlight.arrival_longitude,
+    )
+
+
+  const latitude =
+    Number(
+      isDeparture
+        ? matchingFlight.departure_latitude
+        : matchingFlight.arrival_latitude,
+    )
+
+
+  const destinations =
+    new Map<
+      number,
+      AirportDirectionStat
+    >()
+
+
+  const origins =
+    new Map<
+      number,
+      AirportDirectionStat
+    >()
+
+
+  let departures =
+    0
+
+  let arrivals =
+    0
+
+
+  for (
+    const flight
+    of flights
+  ) {
+    /*
+     * Odloty
+     */
+
+    if (
+      flight.departure_airport_id ===
+      airportId
+    ) {
+      departures++
+
+
+      const existing =
+        destinations.get(
+          flight.arrival_airport_id,
+        )
+
+
+      if (existing) {
+        existing.flights++
+      } else {
+        destinations.set(
+          flight.arrival_airport_id,
+          {
+            code:
+              flight.arrival_iata,
+
+            name:
+              flight.arrival_airport_name,
+
+            city:
+              flight.arrival_city,
+
+            longitude:
+              Number(
+                flight.arrival_longitude,
+              ),
+
+            latitude:
+              Number(
+                flight.arrival_latitude,
+              ),
+
+            flights:
+              1,
+          },
+        )
+      }
+    }
+
+
+    /*
+     * Przyloty
+     */
+
+    if (
+      flight.arrival_airport_id ===
+      airportId
+    ) {
+      arrivals++
+
+
+      const existing =
+        origins.get(
+          flight.departure_airport_id,
+        )
+
+
+      if (existing) {
+        existing.flights++
+      } else {
+        origins.set(
+          flight.departure_airport_id,
+          {
+            code:
+              flight.departure_iata,
+
+            name:
+              flight.departure_airport_name,
+
+            city:
+              flight.departure_city,
+
+            longitude:
+              Number(
+                flight.departure_longitude,
+              ),
+
+            latitude:
+              Number(
+                flight.departure_latitude,
+              ),
+
+            flights:
+              1,
+          },
+        )
+      }
+    }
+  }
+
+
+  return {
+    code,
+
+    name:
+      airportName,
+
+    city:
+      airportCity,
+
+    longitude,
+
+    latitude,
+
+    flights:
+      departures +
+      arrivals,
+
+    departures,
+
+    arrivals,
+
+    topDestinations:
+      [...destinations.values()]
+        .sort(
+          (a, b) =>
+            b.flights -
+            a.flights,
+        )
+        .slice(
+          0,
+          5,
+        ),
+
+    topOrigins:
+      [...origins.values()]
+        .sort(
+          (a, b) =>
+            b.flights -
+            a.flights,
+        )
+        .slice(
+          0,
+          5,
+        ),
+  }
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Otwieranie lotniska po kodzie IATA
+|--------------------------------------------------------------------------
+*/
+
+function openAirportByCode(
+  code: string,
+): void {
+  const airport =
+    buildAirportFromCode(
+      code,
+    )
+
+
+  if (!airport) {
+    return
+  }
+
+
+  selectedRoute.value =
+    null
+
+  selectedFlightId.value =
+    null
+
+  selectedFlight.value =
+    null
+
+  flightError.value =
+    null
+
+
+  airportStatisticsOpen.value =
+    false
+
+  statisticsReport.value =
+    null
+
+
+  if (mapInstance) {
+    clearHighlightedRoute(
+      mapInstance,
+    )
+
+
+    mapInstance.flyTo({
+      center: [
+        airport.longitude,
+        airport.latitude,
+      ],
+
+      zoom:
+        Math.max(
+          mapInstance.getZoom(),
+          4.5,
+        ),
+
+      duration:
+        650,
+    })
+  }
+
+
+  selectedAirport.value =
+    airport
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Przejście ze statystyk do lotniska
 |--------------------------------------------------------------------------
 */
 
@@ -644,7 +884,7 @@ function openAirportFromStatistics(
 
 /*
 |--------------------------------------------------------------------------
-| Wspólne czyszczenie zaznaczeń
+| Czyszczenie zaznaczeń
 |--------------------------------------------------------------------------
 */
 
@@ -671,7 +911,7 @@ function clearSelection(): void {
 
 /*
 |--------------------------------------------------------------------------
-| Panel lotniska - kierunek
+| Panel lotniska - zaznaczenie kierunku
 |--------------------------------------------------------------------------
 */
 
@@ -702,12 +942,6 @@ function selectDestination(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Panel lotniska - port wylotu
-|--------------------------------------------------------------------------
-*/
-
 function selectOrigin(
   origin:
     AirportDirectionStat,
@@ -737,7 +971,7 @@ function selectOrigin(
 
 /*
 |--------------------------------------------------------------------------
-| Panel lotniska -> szczegóły trasy
+| Panel lotniska -> panel trasy
 |--------------------------------------------------------------------------
 */
 
@@ -791,12 +1025,6 @@ function openDestinationRoute(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Panel lotniska -> szczegóły trasy w przeciwnym kierunku
-|--------------------------------------------------------------------------
-*/
-
 function openOriginRoute(
   origin:
     AirportDirectionStat,
@@ -849,7 +1077,7 @@ function openOriginRoute(
 
 /*
 |--------------------------------------------------------------------------
-| Wybór trasy
+| Trasa
 |--------------------------------------------------------------------------
 */
 
@@ -857,12 +1085,6 @@ function selectRoute(
   route:
     SelectedRoute,
 ): void {
-  /*
-   * flightMap.ts nie musi znać flag.
-   * Uzupełniamy je tutaj na podstawie
-   * pierwszego zgodnego lotu.
-   */
-
   const matchingFlight =
     mapFlights.value.find(
       (flight) => {
@@ -938,7 +1160,7 @@ function selectRoute(
 
 /*
 |--------------------------------------------------------------------------
-| Pobranie pełnego rekordu lotu
+| Szczegóły lotu
 |--------------------------------------------------------------------------
 */
 
@@ -982,12 +1204,6 @@ async function loadFlight(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Lot wybrany z panelu trasy
-|--------------------------------------------------------------------------
-*/
-
 async function selectRouteFlight(
   flight:
     RouteFlight,
@@ -997,12 +1213,6 @@ async function selectRouteFlight(
   )
 }
 
-
-/*
-|--------------------------------------------------------------------------
-| Lot wybrany z lewej listy
-|--------------------------------------------------------------------------
-*/
 
 async function selectFlightFromList(
   flight:
@@ -1054,12 +1264,6 @@ async function selectFlightFromList(
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| Powrót ze szczegółów lotu
-|--------------------------------------------------------------------------
-*/
-
 function backFromFlight(): void {
   selectedFlightId.value =
     null
@@ -1074,15 +1278,6 @@ function backFromFlight(): void {
     false
 
 
-  /*
-   * Jeśli lot był otwarty z panelu trasy,
-   * selectedRoute nadal istnieje,
-   * więc wracamy do historii trasy.
-   *
-   * Jeśli z listy Loty, zdejmujemy
-   * granatowe zaznaczenie.
-   */
-
   if (
     !selectedRoute.value &&
     mapInstance
@@ -1096,7 +1291,7 @@ function backFromFlight(): void {
 
 /*
 |--------------------------------------------------------------------------
-| Zamknięcia paneli
+| Zamknięcia
 |--------------------------------------------------------------------------
 */
 
@@ -1139,7 +1334,7 @@ function closeFlight(): void {
 
 /*
 |--------------------------------------------------------------------------
-| Aktualizacja mapy przy scope / filtrach
+| Aktualizacja mapy
 |--------------------------------------------------------------------------
 */
 
@@ -1160,12 +1355,6 @@ watch(
       flights,
     )
 
-
-    /*
-     * W zakładce Loty mapa
-     * automatycznie dopasowuje się
-     * do wyniku wyszukiwania.
-     */
 
     if (
       activeTab.value ===
@@ -1195,8 +1384,8 @@ onMounted(
     }
 
 
-    const map =
-      new Map({
+  const map =
+    new MapLibreMap({
         container:
           mapContainer.value,
 
@@ -1239,10 +1428,6 @@ onMounted(
         'load',
 
         async () => {
-          /*
-           * Linie lotów
-           */
-
           addFlightsToMap(
             map,
 
@@ -1255,10 +1440,6 @@ onMounted(
             },
           )
 
-
-          /*
-           * Lotniska
-           */
 
           await addAirportsToMap(
             map,
@@ -1310,15 +1491,11 @@ onMounted(
 <template>
   <main class="app-shell">
 
-    <!-- Mapa -->
-
     <div
       ref="mapContainer"
       class="map"
     ></div>
 
-
-    <!-- Lewy panel -->
 
     <AppSidebar
       :flights="
@@ -1371,8 +1548,6 @@ onMounted(
     />
 
 
-    <!-- Standardowy panel lotniska -->
-
     <AirportDetailsPanel
       v-if="
         selectedAirport
@@ -1382,8 +1557,16 @@ onMounted(
         selectedAirport
       "
 
+      :flights="
+        mapFlights
+      "
+
       @close="
         closeAirport
+      "
+
+      @airport="
+        openAirportByCode
       "
 
       @destination="
@@ -1403,8 +1586,6 @@ onMounted(
       "
     />
 
-
-    <!-- Panel trasy -->
 
     <RouteDetailsPanel
       v-if="
@@ -1426,8 +1607,6 @@ onMounted(
       "
     />
 
-
-    <!-- Panel pojedynczego lotu -->
 
     <FlightDetailsPanel
       v-if="
@@ -1457,8 +1636,6 @@ onMounted(
     />
 
 
-    <!-- Szeroka tabela statystyk lotnisk -->
-
     <AirportStatisticsPanel
       v-if="
         airportStatisticsOpen
@@ -1477,8 +1654,6 @@ onMounted(
       "
     />
 
-
-    <!-- Szerokie raporty: loty / dystans / czas -->
 
     <StatisticsMetricPanel
       v-if="
@@ -1525,8 +1700,7 @@ body {
     "Segoe UI",
     sans-serif;
 
-  background:
-    #f4f4f4;
+  background: #f4f4f4;
 }
 
 
@@ -1586,8 +1760,7 @@ button {
 
 
 ::-webkit-scrollbar-track {
-  background:
-    transparent;
+  background: transparent;
 }
 
 
@@ -1600,8 +1773,7 @@ button {
       0.18
     );
 
-  border-radius:
-    20px;
+  border-radius: 20px;
 }
 
 
