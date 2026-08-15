@@ -21,6 +21,8 @@ import {
   isPlannedFlight,
 } from '../utils/flightScope'
 
+import airportMarkerUrl from '../assets/map/airport-marker.png'
+
 
 const currentFlights =
   new WeakMap<
@@ -867,7 +869,7 @@ export function addFlightsToMap(
           1,
         ],
 
-        '#f28c28',
+        '#7c3aed',
 
         '#d62828',
       ],
@@ -878,16 +880,22 @@ export function addFlightsToMap(
         ['get', 'flights'],
 
         1,
-        1.6,
-
-        5,
         1.9,
 
+        2,
+        2.1,
+
+        5,
+        2.5,
+
         10,
-        2.3,
+        3.1,
 
         20,
-        3,
+        3.9,
+
+        40,
+        4.8,
       ],
 
       'line-opacity': [
@@ -896,16 +904,22 @@ export function addFlightsToMap(
         ['get', 'flights'],
 
         1,
-        0.5,
+        0.57,
+
+        2,
+        0.60,
 
         5,
-        0.6,
+        0.65,
 
         10,
-        0.7,
+        0.72,
 
         20,
-        0.8,
+        0.79,
+
+        40,
+        0.86,
       ],
     },
   })
@@ -1021,6 +1035,47 @@ export function addFlightsToMap(
 }
 
 
+
+const AIRPORT_MARKER_IMAGE_ID =
+  'airport-marker-legacy'
+
+
+async function ensureAirportMarkerImage(
+  map:
+    MapLibreMap,
+): Promise<void> {
+  if (
+    map.hasImage(
+      AIRPORT_MARKER_IMAGE_ID,
+    )
+  ) {
+    return
+  }
+
+
+  const image =
+    await map.loadImage(
+      airportMarkerUrl,
+    )
+
+
+  if (
+    !map.hasImage(
+      AIRPORT_MARKER_IMAGE_ID,
+    )
+  ) {
+    map.addImage(
+      AIRPORT_MARKER_IMAGE_ID,
+      image.data,
+      {
+        pixelRatio:
+          4,
+      },
+    )
+  }
+}
+
+
 export async function addAirportsToMap(
   map: MapLibreMap,
   flights: Flight[],
@@ -1030,6 +1085,11 @@ export async function addAirportsToMap(
   currentFlights.set(
     map,
     flights,
+  )
+
+
+  await ensureAirportMarkerImage(
+    map,
   )
 
 
@@ -1052,52 +1112,44 @@ export async function addAirportsToMap(
       'airports',
 
     type:
-      'circle',
+      'symbol',
 
     source:
       'airports',
 
-    paint: {
-      'circle-radius': [
+    layout: {
+      'icon-image':
+        AIRPORT_MARKER_IMAGE_ID,
+
+      'icon-size': [
         'interpolate',
         ['linear'],
-        ['get', 'flights'],
+        ['zoom'],
 
-        1,
-        2.5,
+        2,
+        0.82,
+
+        4,
+        0.94,
+
+        6,
+        1.06,
+
+        8,
+        1.18,
 
         10,
-        3.5,
-
-        50,
-        5,
-
-        150,
-        7,
+        1.30,
       ],
 
-      'circle-color':
-        '#ffffff',
+      'icon-anchor':
+        'bottom',
 
-      'circle-stroke-color': [
-        'case',
+      'icon-allow-overlap':
+        true,
 
-        [
-          '==',
-          ['get', 'plannedOnly'],
-          1,
-        ],
-
-        '#f28c28',
-
-        '#d62828',
-      ],
-
-      'circle-stroke-width':
-        1.5,
-
-      'circle-opacity':
-        0.95,
+      'icon-ignore-placement':
+        true,
     },
   })
 

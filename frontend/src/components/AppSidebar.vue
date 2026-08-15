@@ -36,6 +36,7 @@ const emit = defineEmits<{
   statisticsReport: [type: 'flights' | 'distance' | 'duration']
   statisticsSection: [type: 'airlines' | 'aircraft' | 'routes' | 'countries']
   aircraftFilterChanged: [key: string | null]
+  addFlight: []
 }>()
 
 
@@ -369,6 +370,20 @@ function openStatisticsSection(
         </button>
       </nav>
 
+      <button
+        type="button"
+        class="add-flight-button"
+        @click="emit('addFlight')"
+      >
+        <span class="add-flight-button__plus">
+          +
+        </span>
+
+        <span>
+          Dodaj lot
+        </span>
+      </button>
+
       <section class="scope-section">
         <div class="scope-title">
           Zakres lotów
@@ -595,7 +610,7 @@ function openStatisticsSection(
       </div>
 
       <div class="owner-brand__tagline">
-        Najlepsze wyprawy do Azji
+        Najlepsze wyprawy do
       </div>
 
       <nav
@@ -802,8 +817,67 @@ function openStatisticsSection(
   box-shadow: 0 1px 5px rgba(0, 0, 0, 0.12);
 }
 
+.add-flight-button {
+  display: flex;
+  width: 100%;
+  min-height: 54px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 11px;
+  padding: 0 16px;
+  border: 1px solid #a9bacd;
+  border-radius: 10px;
+  background:
+    linear-gradient(
+      to bottom,
+      #dbe6f1,
+      #cfdeeb
+    );
+  color: #0b2d5c;
+  cursor: pointer;
+  box-shadow:
+    0 2px 6px
+    rgba(11, 45, 92, 0.10);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.add-flight-button:hover {
+  border-color: #8ea6bf;
+  background:
+    linear-gradient(
+      to bottom,
+      #d2e0ed,
+      #c3d5e5
+    );
+  box-shadow:
+    0 4px 10px
+    rgba(11, 45, 92, 0.13);
+  transform: translateY(-1px);
+}
+
+.add-flight-button__plus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 16px;
+  transform: translateY(-1px);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+
 .scope-section {
-  margin-top: 18px;
+  margin-top: 12px;
 }
 
 .scope-title {

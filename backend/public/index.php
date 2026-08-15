@@ -23,6 +23,7 @@ $pdo = $database->getConnection();
 
 $app = AppFactory::create();
 
+$app->addBodyParsingMiddleware();
 $app->addRoutingMiddleware();
 
 $app->addErrorMiddleware(
@@ -84,9 +85,29 @@ $app->get(
     [$flightController, 'index']
 );
 
+$app->post(
+    '/api/flights',
+    [$flightController, 'create']
+);
+
 $app->get(
     '/api/flights/{id:[0-9]+}',
     [$flightController, 'show']
+);
+
+$app->get(
+    '/api/airports/search',
+    [$flightController, 'searchAirports']
+);
+
+$app->get(
+    '/api/airlines/search',
+    [$flightController, 'searchAirlines']
+);
+
+$app->get(
+    '/api/aircraft-types/search',
+    [$flightController, 'searchAircraftTypes']
 );
 
 $app->get(

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   computed,
+  nextTick,
   onMounted,
   ref,
   watch,
@@ -23,6 +24,7 @@ import FlightDetailsPanel from './components/FlightDetailsPanel.vue'
 import AirportStatisticsPanel from './components/AirportStatisticsPanel.vue'
 import StatisticsMetricPanel from './components/StatisticsMetricPanel.vue'
 import StatisticsCategoryPanel from './components/StatisticsCategoryPanel.vue'
+import AddFlightPanel from './components/AddFlightPanel.vue'
 
 import {
   getFlight,
@@ -98,6 +100,71 @@ const activeTab =
 
 const sidebarCollapsed =
   ref(false)
+
+
+const rightPanelCollapsed =
+  ref(false)
+
+
+const rightPanelCollapseButton =
+  ref<HTMLButtonElement | null>(
+    null,
+  )
+
+
+const rightPanelKey =
+  computed(
+    (): string | null => {
+      if (
+        addFlightOpen.value
+      ) {
+        return 'add-flight'
+      }
+
+      if (
+        selectedAirport.value
+      ) {
+        return `airport:${selectedAirport.value.code ?? selectedAirport.value.name}`
+      }
+
+      if (
+        selectedFlightId.value !==
+        null
+      ) {
+        return `flight:${selectedFlightId.value}`
+      }
+
+      if (
+        selectedRoute.value
+      ) {
+        return [
+          'route',
+          selectedRoute.value.departureCode ?? '',
+          selectedRoute.value.arrivalCode ?? '',
+        ].join(':')
+      }
+
+      if (
+        airportStatisticsOpen.value
+      ) {
+        return 'statistics-airports'
+      }
+
+      if (
+        statisticsReport.value
+      ) {
+        return `statistics-report:${statisticsReport.value}`
+      }
+
+      if (
+        statisticsSection.value
+      ) {
+        return `statistics-section:${statisticsSection.value}`
+      }
+
+      return null
+    },
+  )
 
 const selectedAirport =
   ref<SelectedAirport | null>(
@@ -175,6 +242,12 @@ const aircraftFilterKey =
   )
 
 const aircraftReturnToStatistics =
+  ref(
+    false,
+  )
+
+
+const addFlightOpen =
   ref(
     false,
   )
@@ -300,6 +373,160 @@ function fitMapToFlights(
     },
   )
 }
+
+function normalizeRightPanelControls(): void {
+  void nextTick(
+    () => {
+      if (
+        rightPanelCollapsed.value
+      ) {
+        return
+      }
+
+      const collapseButton =
+        rightPanelCollapseButton.value
+
+      if (!collapseButton) {
+        return
+      }
+
+      const closeButtons =
+        Array.from(
+          document.querySelectorAll<HTMLButtonElement>(
+            "button[title='Zamknij'], button[aria-label='Zamknij']",
+          ),
+        )
+          .filter(
+            (button) => {
+              const rect =
+                button.getBoundingClientRect()
+
+              return (
+                rect.width >
+                  0 &&
+                rect.height >
+                  0 &&
+                rect.right >
+                  window.innerWidth /
+                    2
+              )
+            },
+          )
+          .sort(
+            (a, b) =>
+              b.getBoundingClientRect()
+                .right -
+              a.getBoundingClientRect()
+                .right,
+          )
+
+      const closeButton =
+        closeButtons[0]
+
+      if (!closeButton) {
+        return
+      }
+
+      /*
+      |--------------------------------------------------------------------------
+      | Ujednolicamy X
+      |--------------------------------------------------------------------------
+      |
+      | Różne komponenty miały własne rozmiary i pozycje X. Zamiast tworzyć
+      | kolejne wyjątki CSS, ustawiamy jeden wspólny wygląd bezpośrednio na
+      | faktycznie widocznym przycisku zamknięcia.
+      |
+      */
+
+      closeButton.style.width =
+        '40px'
+
+      closeButton.style.minWidth =
+        '40px'
+
+      closeButton.style.height =
+        '40px'
+
+      closeButton.style.padding =
+        '0'
+
+      closeButton.style.border =
+        '0'
+
+      closeButton.style.borderRadius =
+        '8px'
+
+      closeButton.style.background =
+        '#f1f2f3'
+
+      closeButton.style.color =
+        '#505862'
+
+      closeButton.style.boxShadow =
+        'none'
+
+      closeButton.style.fontSize =
+        '21px'
+
+      closeButton.style.lineHeight =
+        '1'
+
+
+      const rect =
+        closeButton.getBoundingClientRect()
+
+      const buttonGap =
+        14
+
+      collapseButton.style.top =
+        `${rect.top}px`
+
+      collapseButton.style.right =
+        `${
+          window.innerWidth -
+          rect.left +
+          buttonGap
+        }px`
+
+      collapseButton.style.width =
+        `${rect.width}px`
+
+      collapseButton.style.minWidth =
+        `${rect.width}px`
+
+      collapseButton.style.height =
+        `${rect.height}px`
+
+      collapseButton.style.border =
+        '0'
+
+      collapseButton.style.borderRadius =
+        '8px'
+
+      collapseButton.style.background =
+        '#f1f2f3'
+
+      collapseButton.style.color =
+        '#505862'
+
+      collapseButton.style.boxShadow =
+        'none'
+    },
+  )
+}
+
+
+function toggleRightPanelCollapsed(): void {
+  rightPanelCollapsed.value =
+    !rightPanelCollapsed.value
+
+  if (
+    !rightPanelCollapsed.value
+  ) {
+    normalizeRightPanelControls()
+  }
+}
+
 
 function toggleSidebar(): void {
   sidebarCollapsed.value =
@@ -564,6 +791,171 @@ function backToAircraftStatistics(): void {
   }
 }
 
+function openAddFlight(): void {
+  closeStatisticsPanels()
+
+  aircraftReturnToStatistics.value =
+    false
+
+  routeReturnSection.value =
+    null
+
+  clearSelection()
+
+  if (mapInstance) {
+    clearHighlightedRoute(
+      mapInstance,
+    )
+  }
+
+  addFlightOpen.value =
+    true
+}
+
+
+function closeAddFlight(): void {
+  addFlightOpen.value =
+    false
+}
+
+
+async function refreshFlightsAfterCreate(
+  flightId:
+    number,
+): Promise<void> {
+  const response =
+    await getUserFlights(
+      USER_ID,
+    )
+
+  allFlights.value =
+    response.flights
+
+  const newFlight =
+    response.flights.find(
+      (flight) =>
+        flight.id ===
+        flightId,
+    )
+
+  if (!newFlight) {
+    addFlightOpen.value =
+      false
+
+    return
+  }
+
+  const today =
+    new Date()
+      .toISOString()
+      .slice(
+        0,
+        10,
+      )
+
+  const plannedFlight =
+    newFlight.departure_date !==
+      null &&
+    newFlight.departure_date >
+      today
+
+  if (
+    plannedFlight &&
+    scope.value ===
+      'completed'
+  ) {
+    scope.value =
+      'all'
+  }
+
+  filteredFlights.value =
+    filterFlightsByScope(
+      response.flights,
+      scope.value,
+    )
+
+  addFlightOpen.value =
+    false
+
+  closeStatisticsPanels()
+
+  selectedAirport.value =
+    null
+
+  selectedRoute.value =
+    null
+
+  selectedFlightId.value =
+    null
+
+  selectedFlight.value =
+    null
+
+  await nextTick()
+
+  if (mapInstance) {
+    const currentFlights =
+      filterFlightsByScope(
+        response.flights,
+        scope.value,
+      )
+
+    updateFlightMapData(
+      mapInstance,
+      currentFlights,
+    )
+
+    highlightRoute(
+      mapInstance,
+      newFlight.departure_iata,
+      newFlight.arrival_iata,
+      Number(
+        newFlight.departure_longitude,
+      ),
+      Number(
+        newFlight.departure_latitude,
+      ),
+      Number(
+        newFlight.arrival_longitude,
+      ),
+      Number(
+        newFlight.arrival_latitude,
+      ),
+    )
+
+    fitMapToFlights(
+      mapInstance,
+      [newFlight],
+    )
+  }
+
+  await loadFlight(
+    flightId,
+  )
+}
+
+
+async function openExistingFromAddFlight(
+  flightId:
+    number,
+): Promise<void> {
+  addFlightOpen.value =
+    false
+
+  closeStatisticsPanels()
+
+  selectedAirport.value =
+    null
+
+  selectedRoute.value =
+    null
+
+  await loadFlight(
+    flightId,
+  )
+}
+
+
 function buildAirportFromCode(
   code:
     string,
@@ -754,10 +1146,79 @@ function buildAirportFromCode(
   }
 }
 
-function openAirportByCode(
+function flightsForAirport(
+  airport:
+    SelectedAirport,
+
+  flights:
+    Flight[],
+): Flight[] {
+  return flights.filter(
+    (flight) =>
+      flight.departure_iata ===
+        airport.code ||
+      flight.arrival_iata ===
+        airport.code,
+  )
+}
+
+
+function refreshMapForCurrentAirport(): void {
+  if (!mapInstance) {
+    return
+  }
+
+  if (
+    selectedAirport.value
+  ) {
+    updateFlightMapData(
+      mapInstance,
+      flightsForAirport(
+        selectedAirport.value,
+        mapFlights.value,
+      ),
+    )
+
+    return
+  }
+
+  updateFlightMapData(
+    mapInstance,
+    mapFlights.value,
+  )
+}
+
+
+async function openAirportByCode(
   code:
     string,
-): void {
+): Promise<void> {
+  /*
+  |--------------------------------------------------------------------------
+  | Profil lotniska otwierany z panelu lotu / trasy
+  |--------------------------------------------------------------------------
+  |
+  | Kod lotniska w szczegółach lotu albo trasy traktujemy jako przejście
+  | do pełnego profilu portu. Dlatego niezależnie od bieżącego zakresu
+  | (Odbyte / Zaplanowane) przełączamy aplikację na "Wszystkie".
+  |
+  | Ważne: zmiana scope uruchamia watcher mapFlights, który czyści bieżące
+  | zaznaczenie. Czekamy więc na nextTick i dopiero potem budujemy oraz
+  | otwieramy panel lotniska.
+  |
+  */
+
+  if (
+    scope.value !==
+    'all'
+  ) {
+    changeScope(
+      'all',
+    )
+
+    await nextTick()
+  }
+
   const airport =
     buildAirportFromCode(
       code,
@@ -911,10 +1372,10 @@ function selectOrigin(
   )
 }
 
-function openDestinationRoute(
+async function openDestinationRoute(
   destination:
     AirportDirectionStat,
-): void {
+): Promise<void> {
   if (
     !selectedAirport.value
   ) {
@@ -937,6 +1398,26 @@ function openDestinationRoute(
     return
   }
 
+  /*
+  |--------------------------------------------------------------------------
+  | Najpierw otwieramy panel trasy, potem podświetlamy linię
+  |--------------------------------------------------------------------------
+  |
+  | selectRoute() zeruje selectedAirport. Watcher selectedAirport przywraca
+  | wtedy pełny zestaw tras przez updateFlightMapData(), a ta funkcja czyści
+  | flight-highlight. Wcześniej highlightRoute() było wywoływane przed
+  | selectRoute(), więc zaznaczenie znikało natychmiast po otwarciu panelu.
+  |
+  | Czekamy na wykonanie watchera i dopiero potem nakładamy zaznaczenie.
+  |
+  */
+
+  selectRoute(
+    route,
+  )
+
+  await nextTick()
+
   if (mapInstance) {
     highlightRoute(
       mapInstance,
@@ -948,16 +1429,12 @@ function openDestinationRoute(
       route.arrivalLatitude,
     )
   }
-
-  selectRoute(
-    route,
-  )
 }
 
-function openOriginRoute(
+async function openOriginRoute(
   origin:
     AirportDirectionStat,
-): void {
+): Promise<void> {
   if (
     !selectedAirport.value
   ) {
@@ -980,6 +1457,12 @@ function openOriginRoute(
     return
   }
 
+  selectRoute(
+    route,
+  )
+
+  await nextTick()
+
   if (mapInstance) {
     highlightRoute(
       mapInstance,
@@ -991,10 +1474,6 @@ function openOriginRoute(
       route.arrivalLatitude,
     )
   }
-
-  selectRoute(
-    route,
-  )
 }
 
 function openRouteFromStatistics(
@@ -1269,6 +1748,342 @@ function backFromFlight(): void {
   }
 }
 
+function decorateFlightAirportLinks(): void {
+  void nextTick(
+    () => {
+      const wrapper =
+        document.querySelector<HTMLElement>(
+          '.flight-panel-wrapper',
+        )
+
+      if (
+        !wrapper ||
+        !selectedFlight.value
+      ) {
+        return
+      }
+
+      wrapper
+        .querySelectorAll<HTMLElement>(
+          '[data-flight-airport-code]',
+        )
+        .forEach(
+          (element) => {
+            element.classList.remove(
+              'flight-airport-code-link',
+            )
+
+            element.removeAttribute(
+              'data-flight-airport-code',
+            )
+
+            element.removeAttribute(
+              'role',
+            )
+
+            element.removeAttribute(
+              'tabindex',
+            )
+          },
+        )
+
+      const codes = [
+        selectedFlight.value
+          .departure_iata,
+        selectedFlight.value
+          .arrival_iata,
+      ].filter(
+        (
+          code,
+        ): code is string =>
+          Boolean(code),
+      )
+
+      for (
+        const code
+        of codes
+      ) {
+        const candidates =
+          Array.from(
+            wrapper.querySelectorAll<HTMLElement>(
+              '*',
+            ),
+          )
+
+        const target =
+          candidates.find(
+            (element) =>
+              element.children.length ===
+                0 &&
+              element.textContent
+                ?.trim() ===
+                code,
+          )
+
+        if (!target) {
+          continue
+        }
+
+        target.classList.add(
+          'flight-airport-code-link',
+        )
+
+        target.dataset.flightAirportCode =
+          code
+
+        target.setAttribute(
+          'role',
+          'button',
+        )
+
+        target.setAttribute(
+          'tabindex',
+          '0',
+        )
+      }
+    },
+  )
+}
+
+
+function openFlightAirportFromElement(
+  target:
+    EventTarget | null,
+): void {
+  if (
+    !(target instanceof HTMLElement)
+  ) {
+    return
+  }
+
+  const link =
+    target.closest<HTMLElement>(
+      '[data-flight-airport-code]',
+    )
+
+  const code =
+    link?.dataset
+      .flightAirportCode
+
+  if (!code) {
+    return
+  }
+
+  void openAirportByCode(
+    code,
+  )
+}
+
+
+function handleFlightPanelClick(
+  event:
+    MouseEvent,
+): void {
+  openFlightAirportFromElement(
+    event.target,
+  )
+}
+
+
+function handleFlightPanelKeydown(
+  event:
+    KeyboardEvent,
+): void {
+  if (
+    event.key !==
+      'Enter' &&
+    event.key !==
+      ' '
+  ) {
+    return
+  }
+
+  const target =
+    event.target
+
+  if (
+    target instanceof
+      HTMLElement &&
+    target.dataset
+      .flightAirportCode
+  ) {
+    event.preventDefault()
+
+    openFlightAirportFromElement(
+      target,
+    )
+  }
+}
+
+
+function decorateRouteAirportLinks(): void {
+  void nextTick(
+    () => {
+      const wrapper =
+        document.querySelector<HTMLElement>(
+          '.route-panel-wrapper',
+        )
+
+      if (
+        !wrapper ||
+        !selectedRoute.value
+      ) {
+        return
+      }
+
+      wrapper
+        .querySelectorAll<HTMLElement>(
+          '[data-route-airport-code]',
+        )
+        .forEach(
+          (element) => {
+            element.classList.remove(
+              'route-airport-code-link',
+            )
+
+            element.removeAttribute(
+              'data-route-airport-code',
+            )
+
+            element.removeAttribute(
+              'role',
+            )
+
+            element.removeAttribute(
+              'tabindex',
+            )
+          },
+        )
+
+      const codes = [
+        selectedRoute.value
+          .departureCode,
+        selectedRoute.value
+          .arrivalCode,
+      ].filter(
+        (
+          code,
+        ): code is string =>
+          Boolean(code),
+      )
+
+      for (
+        const code
+        of codes
+      ) {
+        const candidates =
+          Array.from(
+            wrapper.querySelectorAll<HTMLElement>(
+              '*',
+            ),
+          )
+
+        const target =
+          candidates.find(
+            (element) =>
+              element.children.length ===
+                0 &&
+              element.textContent
+                ?.trim() ===
+                code,
+          )
+
+        if (!target) {
+          continue
+        }
+
+        target.classList.add(
+          'route-airport-code-link',
+        )
+
+        target.dataset.routeAirportCode =
+          code
+
+        target.setAttribute(
+          'role',
+          'button',
+        )
+
+        target.setAttribute(
+          'tabindex',
+          '0',
+        )
+      }
+    },
+  )
+}
+
+
+function openRouteAirportFromElement(
+  target:
+    EventTarget | null,
+): void {
+  if (
+    !(target instanceof HTMLElement)
+  ) {
+    return
+  }
+
+  const link =
+    target.closest<HTMLElement>(
+      '[data-route-airport-code]',
+    )
+
+  const code =
+    link?.dataset
+      .routeAirportCode
+
+  if (!code) {
+    return
+  }
+
+  openAirportByCode(
+    code,
+  )
+}
+
+
+function handleRoutePanelClick(
+  event:
+    MouseEvent,
+): void {
+  openRouteAirportFromElement(
+    event.target,
+  )
+}
+
+
+function handleRoutePanelKeydown(
+  event:
+    KeyboardEvent,
+): void {
+  if (
+    event.key !==
+      'Enter' &&
+    event.key !==
+      ' '
+  ) {
+    return
+  }
+
+  const target =
+    event.target
+
+  if (
+    target instanceof
+      HTMLElement &&
+    target.dataset
+      .routeAirportCode
+  ) {
+    event.preventDefault()
+
+    openRouteAirportFromElement(
+      target,
+    )
+  }
+}
+
+
 function closeAirport(): void {
   selectedAirport.value =
     null
@@ -1279,6 +2094,11 @@ function closeAirport(): void {
   if (mapInstance) {
     clearHighlightedRoute(
       mapInstance,
+    )
+
+    updateFlightMapData(
+      mapInstance,
+      mapFlights.value,
     )
   }
 }
@@ -1310,6 +2130,59 @@ function closeFlight(): void {
 }
 
 watch(
+  rightPanelKey,
+
+  (
+    newKey,
+    oldKey,
+  ) => {
+    if (
+      newKey &&
+      newKey !==
+        oldKey
+    ) {
+      rightPanelCollapsed.value =
+        false
+
+      normalizeRightPanelControls()
+    }
+
+    if (!newKey) {
+      rightPanelCollapsed.value =
+        false
+    }
+  },
+)
+
+
+watch(
+  selectedRoute,
+
+  () => {
+    decorateRouteAirportLinks()
+  },
+)
+
+
+watch(
+  selectedFlight,
+
+  () => {
+    decorateFlightAirportLinks()
+  },
+)
+
+
+watch(
+  selectedAirport,
+
+  () => {
+    refreshMapForCurrentAirport()
+  },
+)
+
+
+watch(
   mapFlights,
 
   (flights) => {
@@ -1322,14 +2195,27 @@ watch(
     routeReturnSection.value =
       null
 
-    updateFlightMapData(
-      mapInstance,
-      flights,
-    )
+    if (
+      selectedAirport.value
+    ) {
+      updateFlightMapData(
+        mapInstance,
+        flightsForAirport(
+          selectedAirport.value,
+          flights,
+        ),
+      )
+    } else {
+      updateFlightMapData(
+        mapInstance,
+        flights,
+      )
+    }
 
     if (
       activeTab.value ===
-      'flights'
+      'flights' &&
+      !selectedAirport.value
     ) {
       fitMapToFlights(
         mapInstance,
@@ -1341,6 +2227,11 @@ watch(
 
 onMounted(
   async () => {
+    window.addEventListener(
+      'resize',
+      normalizeRightPanelControls,
+    )
+
     if (
       !mapContainer.value
     ) {
@@ -1458,6 +2349,59 @@ onMounted(
       @statistics-airports="openAirportStatistics"
       @statistics-report="openStatisticsReport"
       @statistics-section="openStatisticsSection"
+      @add-flight="openAddFlight"
+    />
+
+    <button
+      v-if="rightPanelKey"
+      ref="rightPanelCollapseButton"
+      type="button"
+      class="right-panel-collapse-button"
+      :class="{
+        'right-panel-collapse-button--collapsed':
+          rightPanelCollapsed,
+      }"
+      :title="
+        rightPanelCollapsed
+          ? 'Rozwiń panel'
+          : 'Zwiń panel'
+      "
+      :aria-label="
+        rightPanelCollapsed
+          ? 'Rozwiń panel'
+          : 'Zwiń panel'
+      "
+      @click="toggleRightPanelCollapsed"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path
+          v-if="!rightPanelCollapsed"
+          d="M7 9l5 5 5-5"
+        />
+
+        <path
+          v-else
+          d="M7 15l5-5 5 5"
+        />
+      </svg>
+
+      <span
+        v-if="rightPanelCollapsed"
+      >
+        Rozwiń panel
+      </span>
+    </button>
+
+    <AddFlightPanel
+      v-if="addFlightOpen"
+      v-show="!rightPanelCollapsed"
+      :user-id="USER_ID"
+      @close="closeAddFlight"
+      @saved="refreshFlightsAfterCreate"
+      @open-existing="openExistingFromAddFlight"
     />
 
     <button
@@ -1485,8 +2429,9 @@ onMounted(
 
     <AirportDetailsPanel
       v-if="selectedAirport"
+      v-show="!rightPanelCollapsed"
       :airport="selectedAirport"
-      :flights="mapFlights"
+      :flights="visibleFlights"
       @close="closeAirport"
       @airport="openAirportByCode"
       @destination="selectDestination"
@@ -1501,7 +2446,10 @@ onMounted(
         selectedFlightId ===
           null
       "
+      v-show="!rightPanelCollapsed"
       class="route-panel-wrapper"
+      @click="handleRoutePanelClick"
+      @keydown="handleRoutePanelKeydown"
     >
       <button
         v-if="
@@ -1532,20 +2480,28 @@ onMounted(
       />
     </div>
 
-    <FlightDetailsPanel
+    <div
       v-if="
         selectedFlightId !==
         null
       "
-      :flight="selectedFlight"
-      :loading="flightLoading"
-      :error="flightError"
-      @back="backFromFlight"
-      @close="closeFlight"
-    />
+      v-show="!rightPanelCollapsed"
+      class="flight-panel-wrapper"
+      @click="handleFlightPanelClick"
+      @keydown="handleFlightPanelKeydown"
+    >
+      <FlightDetailsPanel
+        :flight="selectedFlight"
+        :loading="flightLoading"
+        :error="flightError"
+        @back="backFromFlight"
+        @close="closeFlight"
+      />
+    </div>
 
     <AirportStatisticsPanel
       v-if="airportStatisticsOpen"
+      v-show="!rightPanelCollapsed"
       :flights="visibleFlights"
       @airport="openAirportFromStatistics"
       @close="closeAirportStatistics"
@@ -1553,6 +2509,7 @@ onMounted(
 
     <StatisticsMetricPanel
       v-if="statisticsReport"
+      v-show="!rightPanelCollapsed"
       :flights="visibleFlights"
       :report-type="statisticsReport"
       @close="closeStatisticsReport"
@@ -1560,6 +2517,7 @@ onMounted(
 
     <StatisticsCategoryPanel
       v-if="statisticsSection"
+      v-show="!rightPanelCollapsed"
       :flights="visibleFlights"
       :section="statisticsSection"
       @aircraft="openAircraftFlightsFromStatistics"
@@ -1619,6 +2577,107 @@ textarea {
   position: static;
 }
 
+
+.flight-panel-wrapper .flight-airport-code-link {
+  color: #0b2d5c !important;
+  cursor: pointer;
+  text-decoration-line: underline;
+  text-decoration-color: rgba(11, 45, 92, 0.5);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.flight-panel-wrapper .flight-airport-code-link:hover,
+.flight-panel-wrapper .flight-airport-code-link:focus-visible {
+  text-decoration-color: #0b2d5c;
+  text-decoration-thickness: 2px;
+  outline: none;
+}
+
+
+.route-panel-wrapper .route-airport-code-link {
+  color: #0b2d5c !important;
+  cursor: pointer;
+  text-decoration-line: underline;
+  text-decoration-color: rgba(11, 45, 92, 0.5);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.route-panel-wrapper .route-airport-code-link:hover,
+.route-panel-wrapper .route-airport-code-link:focus-visible {
+  text-decoration-color: #0b2d5c;
+  text-decoration-thickness: 2px;
+  outline: none;
+}
+
+.right-panel-collapse-button {
+  position: fixed;
+  top: 33px;
+  right: 84px;
+  z-index: 95;
+  display: inline-flex;
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: #f1f2f3;
+  color: #505862;
+  cursor: pointer;
+  box-shadow: none;
+  line-height: 1;
+}
+
+.right-panel-collapse-button:hover {
+  background: #e8eaed;
+  color: #3f4650;
+}
+
+.right-panel-collapse-button svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.right-panel-collapse-button--collapsed {
+  top: 18px !important;
+  right: 18px !important;
+  width: auto !important;
+  min-width: 142px !important;
+  height: 42px !important;
+  padding: 0 14px !important;
+  border: 1px solid rgba(11, 45, 92, 0.22) !important;
+  border-radius: 9px !important;
+  background: rgba(255, 255, 255, 0.98) !important;
+  color: #0b2d5c !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.10) !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em;
+  white-space: nowrap !important;
+}
+
+.right-panel-collapse-button--collapsed:hover {
+  border-color: rgba(11, 45, 92, 0.34) !important;
+  background: #ffffff !important;
+  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.13) !important;
+}
+
+.right-panel-collapse-button--collapsed svg {
+  width: 14px !important;
+  height: 14px !important;
+  flex: 0 0 auto;
+}
+
+
 .aircraft-return-button {
   position: absolute;
   top: 18px;
@@ -1672,7 +2731,7 @@ textarea {
 .route-back-button {
   position: absolute;
   top: 30px;
-  right: 76px;
+  right: 118px;
   z-index: 70;
   display: inline-flex;
   height: 36px;
