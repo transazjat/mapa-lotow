@@ -1084,6 +1084,496 @@ class FlightController
     }
 
 
+    public function update(
+        Request $request,
+        Response $response,
+        array $args
+    ): Response {
+
+        $flightId = isset($args['id'])
+            ? (int) $args['id']
+            : 0;
+
+
+        $data = $request->getParsedBody();
+
+
+        if (
+            $flightId <= 0
+            || !is_array($data)
+        ) {
+            return $this->json(
+                $response,
+                [
+                    'status' => 'error',
+                    'message' => 'Niepoprawne dane edycji lotu.',
+                ],
+                400
+            );
+        }
+
+
+        $userId = (int) ($data['user_id'] ?? 0);
+
+
+        if (
+            $userId <= 0
+            || !$this->flightBelongsToUser(
+                $flightId,
+                $userId
+            )
+        ) {
+            return $this->json(
+                $response,
+                [
+                    'status' => 'error',
+                    'message' => 'Lot nie istnieje albo nie należy do użytkownika.',
+                ],
+                404
+            );
+        }
+
+
+        $departureAirportId = (int) ($data['departure_airport_id'] ?? 0);
+        $arrivalAirportId = (int) ($data['arrival_airport_id'] ?? 0);
+
+        $departureDate = $this->nullableString($data['departure_date'] ?? null);
+        $departureTime = $this->nullableTime($data['departure_time'] ?? null);
+        $arrivalDate = $this->nullableString($data['arrival_date'] ?? null);
+        $arrivalTime = $this->nullableTime($data['arrival_time'] ?? null);
+
+        $airlineId = $this->nullablePositiveInt($data['airline_id'] ?? null);
+        $aircraftTypeId = $this->nullablePositiveInt($data['aircraft_type_id'] ?? null);
+
+        $flightNumber = $this->nullableString($data['flight_number'] ?? null);
+        $notes = $this->nullableString($data['notes'] ?? null);
+
+        $travelClass = (string) ($data['travel_class'] ?? 'e');
+        $seatType = $this->nullableString($data['seat_type'] ?? null);
+        $travelReason = (string) ($data['travel_reason'] ?? 'p');
+
+        $force = (bool) ($data['force'] ?? false);
+
+
+        if (
+            $departureAirportId <= 0
+            || $arrivalAirportId <= 0
+        ) {
+            return $this->json(
+                $response,
+                [
+                    'status' => 'error',
+                    'message' => 'Wybierz oba lotniska.',
+                ],
+                422
+            );
+        }
+
+
+        if (
+            !$departureDate
+            || !$this->isIsoDate($departureDate)
+        ) {
+            return $this->json(
+                $response,
+                [
+                    'status' => 'error',
+                    'message' => 'Data odlotu jest wymagana i musi być poprawną datą.',
+                ],
+                422
+            );
+        }
+
+
+        if (
+            $arrivalDate !== null
+            && !$this->isIsoDate($arrivalDate)
+        ) {
+            return $this->json(
+                $response,
+                [
+                    'status' => 'error',
+                    'message' => 'Niepoprawna data przylotu.',
+                ],
+                422
+            );
+        }
+
+
+        if (
+            $arrivalTime !== null
+            && $arrivalDate === null
+        ) {
+            return $this->json(
+                $response,
+                [
+                    'status' => 'error',
+                    'message' => 'Godzina przylotu wymaga daty przylotu.',
+                ],
+                422
+            );
+        }
+
+
+        if (!in_array($travelClass, ['e', 'p', 'b', 'f'], true)) {
+            return $this->json(
+                $response,
+                [
+                    'status' => 'error',
+                    'message' => 'Niepoprawna klasa podróży.',
+                ],
+                422
+            );
+        }
+
+
+        if (
+            $seatType !== null
+            && !in_array($seatType, ['w', 'm', 'a'], true)
+        ) {
+            return $this->json(
+                $response,
+                [
+                    'status' => 'error',
+                    'message' => 'Niepoprawny typ miejsca.',
+                ],
+                422
+            );
+        }
+
+
+        if (!in_array($travelReason, ['p', 'b'], true)) {
+            return $this->json(
+                $response,
+                [
+                    'status' => 'error',
+                    'message' => 'Niepoprawny cel podróży.',
+                ],
+                422
+            );
+        }
+
+
+        $travelClassForDatabase = $this->mapTravelClassToDatabase(
+            $travelClass
+        );
+
+        $seatTypeForDatabase = $this->mapSeatTypeToDatabase(
+            $seatType
+        );
+
+        $travelReasonForDatabase = $this->mapTravelReasonToDatabase(
+            $travelReason
+        );
+
+
+        if (
+            $travelClassForDatabase === null
+            || (
+                $seatType !== null
+                && $seatTypeForDatabase === null
+            )
+            || $travelReasonForDatabase === null
+        ) {
+            return $this->json(
+                $response,
+                [
+                    'status' => 'error',
+                    'message' => 'Nie udało się dopasować danych klasy, miejsca lub celu podróży do bazy.',
+                ],
+                422
+            );
+        }
+
+
+        $departureAirport = $this->getAirport($departureAirportId);
+        $arrivalAirport = $this->getAirport($arrivalAirportId);
+
+
+        if (!$departureAirport || !$arrivalAirport) {
+            return $this->json(
+                $response,
+                [
+                    'status' => 'error',
+                    'message' => 'Wybrane lotnisko nie istnieje.',
+                ],
+                422
+            );
+        }
+
+
+        if (
+            $airlineId !== null
+            && !$this->existsById('ml_airlines', $airlineId)
+        ) {
+            return $this->json(
+                $response,
+                [
+                    'status' => 'error',
+                    'message' => 'Wybrana linia lotnicza nie istnieje.',
+                ],
+                422
+            );
+        }
+
+
+        if (
+            $aircraftTypeId !== null
+            && !$this->existsById('ml_aircraft_types', $aircraftTypeId)
+        ) {
+            return $this->json(
+                $response,
+                [
+                    'status' => 'error',
+                    'message' => 'Wybrany typ samolotu nie istnieje.',
+                ],
+                422
+            );
+        }
+
+
+        $duplicate = $this->findDuplicate(
+            $userId,
+            $departureAirportId,
+            $arrivalAirportId,
+            $departureDate,
+            $flightNumber,
+            $flightId
+        );
+
+
+        if ($duplicate && !$force) {
+            return $this->json(
+                $response,
+                [
+                    'status' => 'duplicate',
+                    'message' => 'Podobny lot już istnieje.',
+                    'duplicate' => $duplicate,
+                ],
+                409
+            );
+        }
+
+
+        $distanceKm = $this->greatCircleDistanceKm(
+            (float) $departureAirport['latitude'],
+            (float) $departureAirport['longitude'],
+            (float) $arrivalAirport['latitude'],
+            (float) $arrivalAirport['longitude']
+        );
+
+
+        try {
+            $durationSeconds = $this->calculateDurationSeconds(
+                $departureDate,
+                $departureTime,
+                $departureAirport['timezone_name'] ?? null,
+                $arrivalDate,
+                $arrivalTime,
+                $arrivalAirport['timezone_name'] ?? null
+            );
+        } catch (Throwable $e) {
+            return $this->json(
+                $response,
+                [
+                    'status' => 'error',
+                    'message' => $e->getMessage(),
+                ],
+                422
+            );
+        }
+
+
+        try {
+            $stmt = $this->pdo->prepare(
+                "
+                UPDATE ml_flights
+
+                SET
+                    departure_airport_id = :departure_airport_id,
+                    arrival_airport_id = :arrival_airport_id,
+
+                    departure_date = :departure_date,
+                    departure_time = :departure_time,
+
+                    arrival_date = :arrival_date,
+                    arrival_time = :arrival_time,
+
+                    airline_id = :airline_id,
+                    aircraft_type_id = :aircraft_type_id,
+
+                    flight_number = :flight_number,
+
+                    distance_km = :distance_km,
+                    duration_seconds = :duration_seconds,
+
+                    travel_class = :travel_class,
+                    seat_type = :seat_type,
+                    travel_reason = :travel_reason,
+
+                    notes = :notes
+
+                WHERE
+                    id = :flight_id
+                    AND user_id = :user_id
+                "
+            );
+
+
+            $stmt->execute([
+                'departure_airport_id' => $departureAirportId,
+                'arrival_airport_id' => $arrivalAirportId,
+
+                'departure_date' => $departureDate,
+                'departure_time' => $departureTime,
+
+                'arrival_date' => $arrivalDate,
+                'arrival_time' => $arrivalTime,
+
+                'airline_id' => $airlineId,
+                'aircraft_type_id' => $aircraftTypeId,
+
+                'flight_number' => $flightNumber,
+
+                'distance_km' => $distanceKm,
+                'duration_seconds' => $durationSeconds,
+
+                'travel_class' => $travelClassForDatabase,
+                'seat_type' => $seatTypeForDatabase,
+                'travel_reason' => $travelReasonForDatabase,
+
+                'notes' => $notes,
+
+                'flight_id' => $flightId,
+                'user_id' => $userId,
+            ]);
+        } catch (Throwable $e) {
+            return $this->json(
+                $response,
+                [
+                    'status' => 'error',
+                    'message' => 'Błąd zapisu zmian lotu: ' . $e->getMessage(),
+                ],
+                422
+            );
+        }
+
+
+        return $this->json(
+            $response,
+            [
+                'status' => 'ok',
+                'flight_id' => $flightId,
+                'distance_km' => $distanceKm,
+                'duration_seconds' => $durationSeconds,
+                'planned' => $departureDate > date('Y-m-d'),
+            ]
+        );
+    }
+
+
+    public function delete(
+        Request $request,
+        Response $response,
+        array $args
+    ): Response {
+
+        $flightId = isset($args['id'])
+            ? (int) $args['id']
+            : 0;
+
+        $data = $request->getParsedBody();
+
+        $userId = is_array($data)
+            ? (int) ($data['user_id'] ?? 0)
+            : 0;
+
+
+        if (
+            $flightId <= 0
+            || $userId <= 0
+        ) {
+            return $this->json(
+                $response,
+                [
+                    'status' => 'error',
+                    'message' => 'Niepoprawne dane usuwania lotu.',
+                ],
+                400
+            );
+        }
+
+
+        $stmt = $this->pdo->prepare(
+            "
+            DELETE FROM ml_flights
+
+            WHERE
+                id = :flight_id
+                AND user_id = :user_id
+            "
+        );
+
+
+        $stmt->execute([
+            'flight_id' => $flightId,
+            'user_id' => $userId,
+        ]);
+
+
+        if ($stmt->rowCount() !== 1) {
+            return $this->json(
+                $response,
+                [
+                    'status' => 'error',
+                    'message' => 'Lot nie istnieje albo nie należy do użytkownika.',
+                ],
+                404
+            );
+        }
+
+
+        return $this->json(
+            $response,
+            [
+                'status' => 'ok',
+                'deleted_id' => $flightId,
+                'message' => 'Lot został usunięty.',
+            ]
+        );
+    }
+
+
+    private function flightBelongsToUser(
+        int $flightId,
+        int $userId
+    ): bool {
+
+        $stmt = $this->pdo->prepare(
+            "
+            SELECT 1
+
+            FROM ml_flights
+
+            WHERE
+                id = :flight_id
+                AND user_id = :user_id
+
+            LIMIT 1
+            "
+        );
+
+
+        $stmt->execute([
+            'flight_id' => $flightId,
+            'user_id' => $userId,
+        ]);
+
+
+        return (bool) $stmt->fetchColumn();
+    }
+
+
     private function getAirport(
         int $airportId
     ): array|false {
@@ -1120,7 +1610,8 @@ class FlightController
         int $departureAirportId,
         int $arrivalAirportId,
         string $departureDate,
-        ?string $flightNumber
+        ?string $flightNumber,
+        ?int $excludeFlightId = null
     ): array|false {
 
         $stmt = $this->pdo->prepare(
@@ -1159,6 +1650,10 @@ class FlightController
                     OR f.flight_number = :flight_number_match
                     OR f.flight_number IS NULL
                 )
+                AND (
+                    :exclude_flight_id_null IS NULL
+                    OR f.id <> :exclude_flight_id_match
+                )
 
             ORDER BY
                 f.id DESC
@@ -1175,6 +1670,8 @@ class FlightController
             'departure_date' => $departureDate,
             'flight_number_null' => $flightNumber,
             'flight_number_match' => $flightNumber,
+            'exclude_flight_id_null' => $excludeFlightId,
+            'exclude_flight_id_match' => $excludeFlightId,
         ]);
 
 

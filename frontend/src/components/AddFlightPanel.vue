@@ -10,6 +10,7 @@ import 'flag-icons/css/flag-icons.min.css'
 
 import {
   createFlight,
+  updateFlight,
   searchAircraftTypes,
   searchAirlines,
   searchAirports,
@@ -21,12 +22,24 @@ import type {
   AirportSearchItem,
   CreateFlightPayload,
   CreateFlightResponse,
+  FlightDetails,
+  FlightFormMode,
 } from '../types/flight'
 
 
-const props = defineProps<{
-  userId: number
-}>()
+const props = withDefaults(
+  defineProps<{
+    userId: number
+    mode?: FlightFormMode
+    initialFlight?: FlightDetails | null
+  }>(),
+  {
+    mode:
+      'create',
+    initialFlight:
+      null,
+  },
+)
 
 
 const emit = defineEmits<{
@@ -264,6 +277,372 @@ let aircraftTimer:
   ReturnType<typeof setTimeout> |
   null =
   null
+
+
+const panelTitle =
+  computed(
+    () => {
+      if (
+        props.mode ===
+        'edit'
+      ) {
+        return 'EDYTUJ LOT'
+      }
+
+      if (
+        props.mode ===
+        'duplicate'
+      ) {
+        return 'DUPLIKUJ LOT'
+      }
+
+      return 'DODAJ LOT'
+    },
+  )
+
+
+const submitButtonLabel =
+  computed(
+    () =>
+      props.mode ===
+        'edit'
+        ? 'Zapisz zmiany'
+        : 'Dodaj lot',
+  )
+
+
+const successMessage =
+  computed(
+    () =>
+      props.mode ===
+        'edit'
+        ? 'Lot został zmieniony'
+        : 'Lot został dodany',
+  )
+
+
+function databaseTravelClassToForm(
+  value:
+    string | null,
+):
+  | 'e'
+  | 'p'
+  | 'b'
+  | 'f' {
+  switch (value) {
+    case 'premium_economy':
+    case 'premium':
+    case 'p':
+      return 'p'
+
+    case 'business':
+    case 'b':
+      return 'b'
+
+    case 'first':
+    case 'f':
+      return 'f'
+
+    default:
+      return 'e'
+  }
+}
+
+
+function databaseSeatTypeToForm(
+  value:
+    string | null,
+):
+  | 'w'
+  | 'm'
+  | 'a'
+  | null {
+  switch (value) {
+    case 'window':
+    case 'w':
+      return 'w'
+
+    case 'middle':
+    case 'm':
+      return 'm'
+
+    case 'aisle':
+    case 'a':
+      return 'a'
+
+    default:
+      return null
+  }
+}
+
+
+function databaseTravelReasonToForm(
+  value:
+    string | null,
+):
+  | 'p'
+  | 'b' {
+  switch (value) {
+    case 'business':
+    case 'b':
+      return 'b'
+
+    default:
+      return 'p'
+  }
+}
+
+
+function hydrateFromInitialFlight(): void {
+  const flight =
+    props.initialFlight
+
+  if (
+    !flight ||
+    props.mode ===
+      'create'
+  ) {
+    return
+  }
+
+
+  departureAirport.value = {
+    id:
+      flight.departure_airport_id,
+
+    iata_code:
+      flight.departure_iata,
+
+    icao_code:
+      flight.departure_icao,
+
+    name:
+      flight.departure_airport_name,
+
+    city:
+      flight.departure_city,
+
+    country:
+      flight.departure_country,
+
+    country_code:
+      flight.departure_country_code ??
+      null,
+
+    latitude:
+      flight.departure_latitude,
+
+    longitude:
+      flight.departure_longitude,
+
+    timezone_name:
+      flight.departure_timezone,
+  }
+
+
+  arrivalAirport.value = {
+    id:
+      flight.arrival_airport_id,
+
+    iata_code:
+      flight.arrival_iata,
+
+    icao_code:
+      flight.arrival_icao,
+
+    name:
+      flight.arrival_airport_name,
+
+    city:
+      flight.arrival_city,
+
+    country:
+      flight.arrival_country,
+
+    country_code:
+      flight.arrival_country_code ??
+      null,
+
+    latitude:
+      flight.arrival_latitude,
+
+    longitude:
+      flight.arrival_longitude,
+
+    timezone_name:
+      flight.arrival_timezone,
+  }
+
+
+  departureQuery.value =
+    airportPrimary(
+      departureAirport.value,
+    )
+
+  arrivalQuery.value =
+    airportPrimary(
+      arrivalAirport.value,
+    )
+
+
+  selectedAirline.value =
+    flight.airline_id !==
+      null &&
+    flight.airline_name
+      ? {
+          id:
+            flight.airline_id,
+
+          name:
+            flight.airline_name,
+
+          iata_code:
+            flight.airline_iata,
+
+          icao_code:
+            flight.airline_icao,
+        }
+      : null
+
+
+  airlineQuery.value =
+    selectedAirline.value
+      ?.name ??
+    ''
+
+
+  selectedAircraft.value =
+    flight.aircraft_type_id !==
+      null &&
+    flight.aircraft_name
+      ? {
+          id:
+            flight.aircraft_type_id,
+
+          name:
+            flight.aircraft_name,
+
+          family:
+            flight.aircraft_family,
+
+          manufacturer:
+            flight.aircraft_manufacturer,
+
+          model:
+            flight.aircraft_model,
+
+          variant:
+            flight.aircraft_variant,
+        }
+      : null
+
+
+  aircraftQuery.value =
+    selectedAircraft.value
+      ?.name ??
+    ''
+
+
+  travelClass.value =
+    databaseTravelClassToForm(
+      flight.travel_class,
+    )
+
+  seatType.value =
+    databaseSeatTypeToForm(
+      flight.seat_type,
+    )
+
+  travelReason.value =
+    databaseTravelReasonToForm(
+      flight.travel_reason,
+    )
+
+
+  if (
+    props.mode ===
+    'duplicate'
+  ) {
+    departureDate.value =
+      null
+
+    departureTime.value =
+      null
+
+    arrivalDate.value =
+      null
+
+    arrivalTime.value =
+      null
+
+    unknownDepartureTime.value =
+      false
+
+    unknownArrivalDate.value =
+      false
+
+    unknownArrivalTime.value =
+      false
+
+    flightNumber.value =
+      ''
+
+    notes.value =
+      ''
+
+    return
+  }
+
+
+  departureDate.value =
+    flight.departure_date
+
+  departureTime.value =
+    flight.departure_time
+
+  arrivalDate.value =
+    flight.arrival_date
+
+  arrivalTime.value =
+    flight.arrival_time
+
+  unknownDepartureTime.value =
+    flight.departure_time ===
+      null
+
+  unknownArrivalDate.value =
+    flight.arrival_date ===
+      null
+
+  unknownArrivalTime.value =
+    flight.arrival_time ===
+      null
+
+  flightNumber.value =
+    flight.flight_number ??
+    ''
+
+  notes.value =
+    flight.notes ??
+    ''
+}
+
+
+watch(
+  () => [
+    props.mode,
+    props.initialFlight?.id,
+  ],
+
+  () => {
+    hydrateFromInitialFlight()
+  },
+
+  {
+    immediate:
+      true,
+  },
+)
 
 
 const todayIso =
@@ -2158,12 +2537,24 @@ async function submit(
     true
 
   try {
-    const response =
-      await createFlight(
-        buildPayload(
-          force,
-        ),
+    const payload =
+      buildPayload(
+        force,
       )
+
+    const response =
+      (
+        props.mode ===
+          'edit' &&
+        props.initialFlight
+      )
+        ? await updateFlight(
+            props.initialFlight.id,
+            payload,
+          )
+        : await createFlight(
+            payload,
+          )
 
     if (
       response.status ===
@@ -2224,7 +2615,7 @@ async function submit(
           <span class="route-symbol__dot"></span>
         </div>
 
-        <h2>DODAJ LOT</h2>
+        <h2>{{ panelTitle }}</h2>
 
         <span
           v-if="planned"
@@ -2256,7 +2647,7 @@ async function submit(
       </div>
 
       <strong>
-        Lot został dodany
+        {{ successMessage }}
       </strong>
     </div>
 
@@ -2760,7 +3151,7 @@ async function submit(
             class="primary-button"
             :disabled="!canSubmit"
           >
-            {{ saving ? 'Zapisywanie...' : 'Dodaj lot' }}
+            {{ saving ? 'Zapisywanie...' : submitButtonLabel }}
           </button>
         </div>
       </footer>

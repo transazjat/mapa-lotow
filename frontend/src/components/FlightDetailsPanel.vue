@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import 'flag-icons/css/flag-icons.min.css'
 
+import {
+  ref,
+} from 'vue'
+
 import type {
   FlightDetails,
 } from '../types/flight'
@@ -23,7 +27,14 @@ defineProps<{
 const emit = defineEmits<{
   back: []
   close: []
+  edit: []
+  duplicate: []
+  delete: []
 }>()
+
+
+const deleteConfirmOpen =
+  ref(false)
 
 
 function formatDate(
@@ -259,6 +270,93 @@ function flagClass(
         Nie powtarzamy już trasy
         nad tym elementem.
       -->
+
+      <section class="management-actions">
+
+        <button
+          type="button"
+          class="management-button"
+          @click="emit('edit')"
+        >
+          Edytuj
+        </button>
+
+        <button
+          type="button"
+          class="management-button"
+          @click="emit('duplicate')"
+        >
+          Duplikuj
+        </button>
+
+        <button
+          type="button"
+          class="management-button management-button--delete"
+          @click="
+            deleteConfirmOpen =
+              true
+          "
+        >
+          Usuń
+        </button>
+
+      </section>
+
+
+      <section
+        v-if="deleteConfirmOpen"
+        class="delete-confirm"
+      >
+        <div class="delete-confirm__text">
+          <strong>
+            Usunąć ten lot?
+          </strong>
+
+          <span>
+            {{
+              flight.departure_iata ??
+              '---'
+            }}
+            →
+            {{
+              flight.arrival_iata ??
+              '---'
+            }},
+            {{
+              formatDate(
+                flight.departure_date,
+              )
+            }}.
+            Tej operacji nie można cofnąć.
+          </span>
+        </div>
+
+        <div class="delete-confirm__actions">
+          <button
+            type="button"
+            class="delete-confirm__cancel"
+            @click="
+              deleteConfirmOpen =
+                false
+            "
+          >
+            Anuluj
+          </button>
+
+          <button
+            type="button"
+            class="delete-confirm__submit"
+            @click="
+              deleteConfirmOpen =
+                false;
+              emit('delete')
+            "
+          >
+            Usuń lot
+          </button>
+        </div>
+      </section>
+
 
       <section class="hero-card">
 
@@ -731,6 +829,122 @@ function flagClass(
   font-size: 21px;
 
   line-height: 1;
+}
+
+
+.management-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-bottom: 9px;
+}
+
+
+.management-button {
+  min-height: 31px;
+  padding: 0 10px;
+  border: 1px solid #d9dde3;
+  border-radius: 7px;
+  background: #fff;
+  color: #0b2d5c;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+
+.management-button:hover {
+  background: #f5f7f9;
+}
+
+
+.management-button--delete {
+  border-color:
+    rgba(
+      160,
+      33,
+      33,
+      0.22
+    );
+
+  color: #a02121;
+}
+
+
+.delete-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 11px;
+  border:
+    1px solid
+    rgba(
+      160,
+      33,
+      33,
+      0.18
+    );
+  border-radius: 9px;
+  background:
+    rgba(
+      160,
+      33,
+      33,
+      0.045
+    );
+}
+
+
+.delete-confirm__text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+
+.delete-confirm__text strong {
+  color: #8f1f1f;
+  font-size: 11px;
+}
+
+
+.delete-confirm__text span {
+  color: #666;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+
+.delete-confirm__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+
+.delete-confirm__cancel,
+.delete-confirm__submit {
+  min-height: 31px;
+  padding: 0 10px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+
+.delete-confirm__cancel {
+  border: 1px solid #d9dde3;
+  background: #fff;
+  color: #555;
+}
+
+
+.delete-confirm__submit {
+  border: 1px solid #a02121;
+  background: #a02121;
+  color: #fff;
 }
 
 

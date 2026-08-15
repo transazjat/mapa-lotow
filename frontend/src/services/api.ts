@@ -4,6 +4,7 @@ import type {
   AirportSearchItem,
   CreateFlightPayload,
   CreateFlightResponse,
+  DeleteFlightResponse,
   FlightDetailsResponse,
   FlightsResponse,
   SearchResponse,
@@ -188,6 +189,70 @@ export async function createFlight(
 
   return await readJson<
     CreateFlightResponse
+  >(
+    response,
+  )
+}
+
+
+
+export async function updateFlight(
+  flightId: number,
+  payload: CreateFlightPayload,
+): Promise<CreateFlightResponse> {
+  const response =
+    await fetch(
+      `/api/flights/${flightId}`,
+      {
+        method:
+          'PUT',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body:
+          JSON.stringify(
+            payload,
+          ),
+      },
+    )
+
+  return await readJson<
+    CreateFlightResponse
+  >(
+    response,
+  )
+}
+
+
+export async function deleteFlight(
+  flightId: number,
+  userId: number,
+): Promise<DeleteFlightResponse> {
+  const response =
+    await fetch(
+      `/api/flights/${flightId}`,
+      {
+        method:
+          'DELETE',
+
+        headers: {
+          'Content-Type':
+            'application/json',
+        },
+
+        body:
+          JSON.stringify({
+            user_id:
+              userId,
+          }),
+      },
+    )
+
+  return await readJson<
+    DeleteFlightResponse
   >(
     response,
   )

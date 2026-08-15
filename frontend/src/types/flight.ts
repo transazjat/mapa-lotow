@@ -418,3 +418,17 @@ export interface CreateFlightResponse {
   duplicate?: DuplicateFlightSummary
   message?: string
 }
+
+
+
+export type FlightFormMode =
+  | 'create'
+  | 'edit'
+  | 'duplicate'
+
+
+export interface DeleteFlightResponse {
+  status: 'ok'
+  deleted_id: number
+  message?: string
+}

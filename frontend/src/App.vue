@@ -27,6 +27,7 @@ import StatisticsCategoryPanel from './components/StatisticsCategoryPanel.vue'
 import AddFlightPanel from './components/AddFlightPanel.vue'
 
 import {
+  deleteFlight,
   getFlight,
   getUserFlights,
 } from './services/api'
@@ -51,6 +52,7 @@ import type {
   AirportDirectionStat,
   Flight,
   FlightDetails,
+  FlightFormMode,
   FlightScope,
   RouteFlight,
   SelectedAirport,
@@ -250,6 +252,18 @@ const aircraftReturnToStatistics =
 const addFlightOpen =
   ref(
     false,
+  )
+
+
+const flightFormMode =
+  ref<FlightFormMode>(
+    'create',
+  )
+
+
+const flightFormInitialFlight =
+  ref<FlightDetails | null>(
+    null,
   )
 
 const visibleFlights =
@@ -808,18 +822,95 @@ function openAddFlight(): void {
     )
   }
 
+  flightFormMode.value =
+    'create'
+
+  flightFormInitialFlight.value =
+    null
+
   addFlightOpen.value =
     true
 }
 
 
-function closeAddFlight(): void {
+function openEditFlight(): void {
+  if (
+    !selectedFlight.value
+  ) {
+    return
+  }
+
+  flightFormMode.value =
+    'edit'
+
+  flightFormInitialFlight.value =
+    selectedFlight.value
+
+  selectedFlightId.value =
+    null
+
+  selectedFlight.value =
+    null
+
   addFlightOpen.value =
-    false
+    true
 }
 
 
-async function refreshFlightsAfterCreate(
+function openDuplicateFlight(): void {
+  if (
+    !selectedFlight.value
+  ) {
+    return
+  }
+
+  flightFormMode.value =
+    'duplicate'
+
+  flightFormInitialFlight.value =
+    selectedFlight.value
+
+  selectedFlightId.value =
+    null
+
+  selectedFlight.value =
+    null
+
+  addFlightOpen.value =
+    true
+}
+
+
+async function closeAddFlight(): Promise<void> {
+  const previousFlightId =
+    flightFormInitialFlight.value
+      ?.id ??
+    null
+
+  const shouldReturn =
+    flightFormMode.value !==
+      'create' &&
+    previousFlightId !==
+      null
+
+  addFlightOpen.value =
+    false
+
+  flightFormInitialFlight.value =
+    null
+
+  flightFormMode.value =
+    'create'
+
+  if (shouldReturn) {
+    await loadFlight(
+      previousFlightId,
+    )
+  }
+}
+
+
+async function refreshFlightsAfterSave(
   flightId:
     number,
 ): Promise<void> {
@@ -932,6 +1023,66 @@ async function refreshFlightsAfterCreate(
   await loadFlight(
     flightId,
   )
+}
+
+
+async function deleteSelectedFlight(): Promise<void> {
+  const flightId =
+    selectedFlight.value
+      ?.id ??
+    selectedFlightId.value
+
+  if (!flightId) {
+    return
+  }
+
+  try {
+    await deleteFlight(
+      flightId,
+      USER_ID,
+    )
+
+    const response =
+      await getUserFlights(
+        USER_ID,
+      )
+
+    allFlights.value =
+      response.flights
+
+    filteredFlights.value =
+      filterFlightsByScope(
+        response.flights,
+        scope.value,
+      )
+
+    selectedFlightId.value =
+      null
+
+    selectedFlight.value =
+      null
+
+    flightError.value =
+      null
+
+    if (mapInstance) {
+      clearHighlightedRoute(
+        mapInstance,
+      )
+
+      updateFlightMapData(
+        mapInstance,
+        mapFlights.value,
+      )
+    }
+  } catch (
+    error
+  ) {
+    flightError.value =
+      error instanceof Error
+        ? error.message
+        : 'Nie udało się usunąć lotu.'
+  }
 }
 
 
@@ -2399,8 +2550,10 @@ onMounted(
       v-if="addFlightOpen"
       v-show="!rightPanelCollapsed"
       :user-id="USER_ID"
+      :mode="flightFormMode"
+      :initial-flight="flightFormInitialFlight"
       @close="closeAddFlight"
-      @saved="refreshFlightsAfterCreate"
+      @saved="refreshFlightsAfterSave"
       @open-existing="openExistingFromAddFlight"
     />
 
@@ -2496,6 +2649,9 @@ onMounted(
         :error="flightError"
         @back="backFromFlight"
         @close="closeFlight"
+        @edit="openEditFlight"
+        @duplicate="openDuplicateFlight"
+        @delete="deleteSelectedFlight"
       />
     </div>
 

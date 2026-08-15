@@ -90,6 +90,17 @@ $app->post(
     [$flightController, 'create']
 );
 
+
+$app->put(
+    '/api/flights/{id:[0-9]+}',
+    [$flightController, 'update']
+);
+
+$app->delete(
+    '/api/flights/{id:[0-9]+}',
+    [$flightController, 'delete']
+);
+
 $app->get(
     '/api/flights/{id:[0-9]+}',
     [$flightController, 'show']
