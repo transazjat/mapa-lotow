@@ -23,6 +23,8 @@ const props = defineProps<{
   collapsed: boolean
   activeFlightId: number | null
   initialAircraftFilterKey?: string | null
+  authenticated?: boolean
+  userName?: string
 }>()
 
 
@@ -37,7 +39,11 @@ const emit = defineEmits<{
   statisticsSection: [type: 'airlines' | 'aircraft' | 'routes' | 'countries']
   aircraftFilterChanged: [key: string | null]
   addFlight: []
+  fullscreen: []
+  authChoice: []
 }>()
+
+
 
 
 const totalDistance =
@@ -319,8 +325,58 @@ function openStatisticsSection(
           </div>
         </div>
 
-        <div class="user-name">
-          Krzysztof
+        <div
+          class="app-toolbox"
+          aria-label="Narzędzia aplikacji"
+        >
+          <button
+            type="button"
+            class="app-toolbox__button"
+            title="Pokaż mapę na pełnym ekranie"
+            aria-label="Pokaż mapę na pełnym ekranie"
+            @click="emit('fullscreen')"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path d="M8 3H3v5" />
+              <path d="M16 3h5v5" />
+              <path d="M21 16v5h-5" />
+              <path d="M8 21H3v-5" />
+            </svg>
+          </button>
+        </div>
+
+        <div
+          v-if="authenticated"
+          class="user-name"
+        >
+          {{ userName || 'Użytkownik' }}
+        </div>
+
+        <div
+          v-else
+          class="auth-links"
+          aria-label="Konto użytkownika"
+        >
+          <a
+            href="#"
+            @click.prevent
+          >
+            Zaloguj się
+          </a>
+
+          <span aria-hidden="true">
+            ·
+          </span>
+
+          <a
+            href="#"
+            @click.prevent
+          >
+            Załóż konto
+          </a>
         </div>
       </header>
 
@@ -373,7 +429,11 @@ function openStatisticsSection(
       <button
         type="button"
         class="add-flight-button"
-        @click="emit('addFlight')"
+        @click="
+          authenticated
+            ? emit('addFlight')
+            : emit('authChoice')
+        "
       >
         <span class="add-flight-button__plus">
           +
@@ -583,9 +643,35 @@ function openStatisticsSection(
       >
         <strong>Konto</strong>
 
-        <p>
-          Funkcje konta dodamy później.
-        </p>
+        <template v-if="authenticated">
+          <p>
+            Profil i ustawienia konta użytkownika
+            dodamy w kolejnym etapie.
+          </p>
+        </template>
+
+        <template v-else>
+          <p>
+            Zaloguj się do istniejącego konta
+            albo załóż nowe.
+          </p>
+
+          <div class="account-placeholder__actions">
+            <a
+              href="#"
+              @click.prevent
+            >
+              Zaloguj się
+            </a>
+
+            <a
+              href="#"
+              @click.prevent
+            >
+              Załóż konto
+            </a>
+          </div>
+        </template>
       </section>
     </div>
 
@@ -593,40 +679,40 @@ function openStatisticsSection(
       v-if="!collapsed"
       class="owner-brand"
     >
-      <div class="owner-brand__logo-row">
-        <a
-          class="owner-brand__logo-link"
-          href="https://wyprawy.transazja.pl/"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="TransAzja - wyprawy do Azji"
-        >
-          <img
-            :src="transAzjaLogoUrl"
-            class="owner-brand__logo"
-            alt="TransAzja"
-          >
-        </a>
-      </div>
-
-      <div class="owner-brand__tagline">
-        Najlepsze wyprawy do
-      </div>
-
-      <nav
-        class="owner-brand__destinations"
-        aria-label="Wyprawy TransAzja"
+      <a
+        class="owner-brand__logo-link"
+        href="https://wyprawy.transazja.pl/"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="TransAzja - wyprawy do Azji"
       >
-        <a
-          v-for="destination in transAzjaDestinations"
-          :key="destination.label"
-          :href="destination.href"
-          target="_blank"
-          rel="noopener noreferrer"
+        <img
+          :src="transAzjaLogoUrl"
+          class="owner-brand__logo"
+          alt="TransAzja"
         >
-          {{ destination.label }}
-        </a>
-      </nav>
+      </a>
+
+      <div class="owner-brand__copy">
+        <div class="owner-brand__tagline">
+          Najlepsze wyprawy do
+        </div>
+
+        <nav
+          class="owner-brand__destinations"
+          aria-label="Wyprawy TransAzja"
+        >
+          <a
+            v-for="destination in transAzjaDestinations"
+            :key="destination.label"
+            :href="destination.href"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {{ destination.label }}
+          </a>
+        </nav>
+      </div>
     </footer>
   </aside>
 </template>
@@ -701,12 +787,61 @@ function openStatisticsSection(
 .sidebar-content {
   max-height: calc(100vh - 36px);
   overflow-y: auto;
-  padding: 20px 20px 132px;
+  padding: 20px 20px 98px;
 }
 
+
 .sidebar-header {
+  position: relative;
   padding-right: 42px;
   text-align: left;
+}
+
+
+.app-toolbox {
+  position: absolute;
+  top: 1px;
+  right: 43px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+
+.app-toolbox__button {
+  display: inline-flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid #dfe3e8;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #697482;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+
+.app-toolbox__button:hover {
+  border-color: #cdd3da;
+  background: #f4f6f8;
+  color: #0b2d5c;
+}
+
+
+.app-toolbox__button svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .brand-lockup {
@@ -779,6 +914,57 @@ function openStatisticsSection(
   font-size: 13px;
   font-weight: 600;
   text-align: center;
+}
+
+
+.auth-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 9px;
+  color: #a0a7b0;
+  font-size: 10.5px;
+  font-weight: 650;
+}
+
+
+.auth-links a {
+  color: #687483;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+
+.auth-links a:hover {
+  color: #0b2d5c;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+
+.account-placeholder__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+
+.account-placeholder__actions a {
+  padding: 7px 10px;
+  border: 1px solid #d9dee5;
+  border-radius: 7px;
+  background: #fff;
+  color: #0b2d5c;
+  font-size: 10px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+
+.account-placeholder__actions a:hover {
+  background: #f5f7f9;
 }
 
 .main-nav {
@@ -1029,12 +1215,12 @@ function openStatisticsSection(
   bottom: 2px;
   left: 20px;
   z-index: 7;
-  display: flex;
-  min-height: 122px;
-  flex-direction: column;
+  display: grid;
+  min-height: 88px;
+  grid-template-columns: 112px minmax(0, 1fr);
   align-items: center;
-  justify-content: flex-start;
-  padding: 11px 8px 2px;
+  gap: 14px;
+  padding: 10px 8px 8px;
   border-top: 1px solid rgba(0, 0, 0, 0.07);
   background:
     linear-gradient(
@@ -1045,18 +1231,11 @@ function openStatisticsSection(
   backdrop-filter: blur(8px);
 }
 
-.owner-brand__logo-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
 
 .owner-brand__logo-link {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   text-decoration: none;
 }
 
@@ -1068,48 +1247,62 @@ function openStatisticsSection(
 
 .owner-brand__logo {
   display: block;
-  width: auto;
-  height: 50px;
+  width: 104px;
+  height: auto;
+  max-height: 58px;
   object-fit: contain;
 }
 
+
+.owner-brand__copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+
 .owner-brand__tagline {
-  margin-top: 13px;
+  margin: 0;
   color: #64748b;
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.02em;
   line-height: 1.2;
-  text-align: center;
-  text-transform: none;
+  text-align: left;
 }
+
 
 .owner-brand__destinations {
   display: flex;
-  max-width: 310px;
+  max-width: 190px;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  gap: 2px 8px;
-  margin-top: 4px;
+  justify-content: flex-start;
+  gap: 2px 7px;
+  margin-top: 5px;
   margin-bottom: 0;
   line-height: 1.12;
 }
 
+
 .owner-brand__destinations a {
   color: #8d95a1;
-  font-size: 9px;
+  font-size: 8.5px;
   font-weight: 600;
-  letter-spacing: 0.045em;
+  letter-spacing: 0.04em;
   text-decoration: none;
   text-transform: uppercase;
   transition: color 0.15s ease;
 }
 
+
 .owner-brand__destinations a:hover {
   color: #0b2d5c;
   text-decoration: underline;
 }
+
 
 @media (max-width: 700px) {
   .sidebar {
@@ -1135,18 +1328,35 @@ function openStatisticsSection(
     font-size: 13px;
   }
 
+  .auth-links {
+    padding-left: 42px;
+    font-size: 10px;
+  }
+
+  .app-toolbox {
+    right: 41px;
+  }
+
+  .app-toolbox__button {
+    width: 30px;
+    height: 30px;
+  }
+
   .owner-brand {
     right: 14px;
     left: 14px;
-    min-height: 116px;
+    min-height: 82px;
+    grid-template-columns: 102px minmax(0, 1fr);
+    gap: 10px;
   }
 
   .owner-brand__logo {
-    height: 46px;
+    width: 96px;
+    max-height: 52px;
   }
 
   .owner-brand__destinations {
-    max-width: 280px;
+    max-width: 180px;
   }
 
   .sidebar--collapsed {

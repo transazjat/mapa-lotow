@@ -2,6 +2,7 @@
 import {
   computed,
   nextTick,
+  onBeforeUnmount,
   onMounted,
   ref,
   watch,
@@ -25,6 +26,7 @@ import AirportStatisticsPanel from './components/AirportStatisticsPanel.vue'
 import StatisticsMetricPanel from './components/StatisticsMetricPanel.vue'
 import StatisticsCategoryPanel from './components/StatisticsCategoryPanel.vue'
 import AddFlightPanel from './components/AddFlightPanel.vue'
+import TripAdCard from './components/TripAdCard.vue'
 
 import {
   deleteFlight,
@@ -66,6 +68,41 @@ setWorkerUrl(
 
 const USER_ID =
   75
+
+
+/*
+|--------------------------------------------------------------------------
+| Stan konta - prototyp interfejsu
+|--------------------------------------------------------------------------
+|
+| Nie mamy jeszcze prawdziwego systemu logowania. Ustawienie false pozwala
+| zobaczyć docelowy wygląd linków "Zaloguj się" / "Załóż konto", a dane
+| aplikacji nadal są pobierane z konta testowego USER_ID = 75.
+|
+*/
+const DEMO_AUTHENTICATED =
+  false
+
+const DEMO_USER_NAME =
+  'Krzysztof'
+
+
+const appShell =
+  ref<HTMLElement | null>(
+    null,
+  )
+
+
+const fullscreenMapMode =
+  ref(
+    false,
+  )
+
+
+const authChoiceOpen =
+  ref(
+    false,
+  )
 
 const mapTilerKey =
   import.meta.env.VITE_MAPTILER_KEY
@@ -110,6 +147,12 @@ const rightPanelCollapsed =
 
 const rightPanelCollapseButton =
   ref<HTMLButtonElement | null>(
+    null,
+  )
+
+
+const transAzjaAdPanel =
+  ref<HTMLDivElement | null>(
     null,
   )
 
@@ -388,6 +431,112 @@ function fitMapToFlights(
   )
 }
 
+function fitRightPanelAboveTransAzjaAd(
+  closeButton:
+    HTMLButtonElement,
+): void {
+  const adPanel =
+    transAzjaAdPanel.value
+
+  if (!adPanel) {
+    return
+  }
+
+  const adRect =
+    adPanel.getBoundingClientRect()
+
+  if (
+    adRect.width <= 0 ||
+    adRect.height <= 0
+  ) {
+    return
+  }
+
+  /*
+  |--------------------------------------------------------------------------
+  | Znajdujemy faktyczny panel po prawej stronie
+  |--------------------------------------------------------------------------
+  |
+  | Większość prawych paneli jest elementem <aside>. Fallback przechodzi
+  | po rodzicach i wybiera pierwszy większy element pozycjonowany absolutnie
+  | lub fixed. Dzięki temu rozwiązanie działa dla różnych typów paneli bez
+  | uzależniania się od nazw ich klas.
+  |
+  */
+
+  let panel =
+    closeButton.closest<HTMLElement>(
+      'aside',
+    )
+
+  if (!panel) {
+    let candidate:
+      HTMLElement | null =
+      closeButton.parentElement
+
+    while (candidate) {
+      const rect =
+        candidate.getBoundingClientRect()
+
+      const position =
+        window
+          .getComputedStyle(
+            candidate,
+          )
+          .position
+
+      if (
+        (
+          position ===
+            'absolute' ||
+          position ===
+            'fixed'
+        ) &&
+        rect.width >= 300 &&
+        rect.height >= 160
+      ) {
+        panel =
+          candidate
+
+        break
+      }
+
+      candidate =
+        candidate.parentElement
+    }
+  }
+
+  if (!panel) {
+    return
+  }
+
+  const panelRect =
+    panel.getBoundingClientRect()
+
+  const gap =
+    12
+
+  const maxHeight =
+    Math.max(
+      180,
+      Math.floor(
+        adRect.top -
+        gap -
+        panelRect.top,
+      ),
+    )
+
+  panel.style.maxHeight =
+    `${maxHeight}px`
+
+  /*
+   * Jeżeli panel sam przewija zawartość, zostawiamy jego dotychczasowy
+   * overflow. Dla paneli z wewnętrznym scrollem zmniejszenie max-height
+   * wystarczy, aby reklama pozostała widoczna.
+   */
+}
+
+
 function normalizeRightPanelControls(): void {
   void nextTick(
     () => {
@@ -486,6 +635,11 @@ function normalizeRightPanelControls(): void {
         '1'
 
 
+      fitRightPanelAboveTransAzjaAd(
+        closeButton,
+      )
+
+
       const rect =
         closeButton.getBoundingClientRect()
 
@@ -542,6 +696,58 @@ function toggleRightPanelCollapsed(): void {
 }
 
 
+async function resizeMapAfterLayoutChange(): Promise<void> {
+  await nextTick()
+
+  requestAnimationFrame(
+    () => {
+      mapInstance?.resize()
+    },
+  )
+}
+
+
+function handleFullscreenChange(): void {
+  fullscreenMapMode.value =
+    document.fullscreenElement ===
+    appShell.value
+
+  void resizeMapAfterLayoutChange()
+}
+
+
+async function toggleMapFullscreen(): Promise<void> {
+  try {
+    if (
+      document.fullscreenElement
+    ) {
+      await document.exitFullscreen()
+      return
+    }
+
+    if (
+      !appShell.value
+    ) {
+      return
+    }
+
+    await appShell.value.requestFullscreen()
+
+    fullscreenMapMode.value =
+      true
+
+    await resizeMapAfterLayoutChange()
+  } catch (
+    error
+  ) {
+    console.error(
+      'Nie udało się włączyć trybu pełnoekranowego.',
+      error,
+    )
+  }
+}
+
+
 function toggleSidebar(): void {
   sidebarCollapsed.value =
     !sidebarCollapsed.value
@@ -551,6 +757,19 @@ function changeTab(
   tab:
     SidebarTab,
 ): void {
+  if (
+    addFlightOpen.value
+  ) {
+    addFlightOpen.value =
+      false
+
+    flightFormMode.value =
+      'create'
+
+    flightFormInitialFlight.value =
+      null
+  }
+
   activeTab.value =
     tab
 
@@ -628,6 +847,16 @@ function closeStatisticsPanels(): void {
 }
 
 function openAirportStatistics(): void {
+  addFlightOpen.value =
+    false
+
+  flightFormMode.value =
+    'create'
+
+  flightFormInitialFlight.value =
+    null
+
+
   clearSelection()
   closeStatisticsPanels()
 
@@ -655,6 +884,16 @@ function openStatisticsReport(
     | 'distance'
     | 'duration',
 ): void {
+  addFlightOpen.value =
+    false
+
+  flightFormMode.value =
+    'create'
+
+  flightFormInitialFlight.value =
+    null
+
+
   clearSelection()
   closeStatisticsPanels()
 
@@ -683,6 +922,16 @@ function openStatisticsSection(
     | 'routes'
     | 'countries',
 ): void {
+  addFlightOpen.value =
+    false
+
+  flightFormMode.value =
+    'create'
+
+  flightFormInitialFlight.value =
+    null
+
+
   clearSelection()
   closeStatisticsPanels()
 
@@ -805,7 +1054,45 @@ function backToAircraftStatistics(): void {
   }
 }
 
+function openAuthChoice(): void {
+  closeStatisticsPanels()
+
+  addFlightOpen.value =
+    false
+
+  selectedAirport.value =
+    null
+
+  selectedRoute.value =
+    null
+
+  selectedFlightId.value =
+    null
+
+  selectedFlight.value =
+    null
+
+  authChoiceOpen.value =
+    true
+
+  if (mapInstance) {
+    clearHighlightedRoute(
+      mapInstance,
+    )
+  }
+}
+
+
+function closeAuthChoice(): void {
+  authChoiceOpen.value =
+    false
+}
+
+
 function openAddFlight(): void {
+  authChoiceOpen.value =
+    false
+
   closeStatisticsPanels()
 
   aircraftReturnToStatistics.value =
@@ -2383,6 +2670,11 @@ onMounted(
       normalizeRightPanelControls,
     )
 
+    document.addEventListener(
+      'fullscreenchange',
+      handleFullscreenChange,
+    )
+
     if (
       !mapContainer.value
     ) {
@@ -2475,22 +2767,47 @@ onMounted(
     }
   },
 )
+
+
+onBeforeUnmount(
+  () => {
+    window.removeEventListener(
+      'resize',
+      normalizeRightPanelControls,
+    )
+
+    document.removeEventListener(
+      'fullscreenchange',
+      handleFullscreenChange,
+    )
+  },
+)
 </script>
 
 <template>
-  <main class="app-shell">
+  <main
+    ref="appShell"
+    class="app-shell"
+    :class="{
+      'app-shell--map-fullscreen':
+        fullscreenMapMode,
+    }"
+  >
     <div
       ref="mapContainer"
       class="map"
     ></div>
 
     <AppSidebar
+      v-show="!fullscreenMapMode"
       :flights="visibleFlights"
       :active-tab="activeTab"
       :scope="scope"
       :collapsed="sidebarCollapsed"
       :active-flight-id="selectedFlightId"
       :initial-aircraft-filter-key="aircraftFilterKey"
+      :authenticated="DEMO_AUTHENTICATED"
+      :user-name="DEMO_USER_NAME"
       @toggle="toggleSidebar"
       @tab="changeTab"
       @scope="changeScope"
@@ -2501,10 +2818,26 @@ onMounted(
       @statistics-report="openStatisticsReport"
       @statistics-section="openStatisticsSection"
       @add-flight="openAddFlight"
+      @auth-choice="openAuthChoice"
+      @fullscreen="toggleMapFullscreen"
     />
 
+    <div
+      v-if="
+        !sidebarCollapsed &&
+        !fullscreenMapMode
+      "
+      ref="transAzjaAdPanel"
+      class="transazja-ad-panel"
+    >
+      <TripAdCard />
+    </div>
+
     <button
-      v-if="rightPanelKey"
+      v-if="
+        rightPanelKey &&
+        !fullscreenMapMode
+      "
       ref="rightPanelCollapseButton"
       type="button"
       class="right-panel-collapse-button"
@@ -2546,8 +2879,63 @@ onMounted(
       </span>
     </button>
 
+    <aside
+      v-if="
+        authChoiceOpen &&
+        !fullscreenMapMode
+      "
+      class="auth-choice-panel"
+      aria-label="Zaloguj się lub załóż konto"
+    >
+      <button
+        type="button"
+        class="auth-choice-panel__close"
+        title="Zamknij"
+        aria-label="Zamknij"
+        @click="closeAuthChoice"
+      >
+        ×
+      </button>
+
+      <div class="auth-choice-panel__header">
+        <div class="auth-choice-panel__eyebrow">
+          Dodawanie lotów
+        </div>
+
+        <h2>
+          Zaloguj się lub załóż konto
+        </h2>
+
+        <p>
+          Aby dodawać własne loty i zapisywać historię,
+          potrzebujesz konta w Mapie Lotów.
+        </p>
+      </div>
+
+      <div class="auth-choice-panel__actions">
+        <a
+          href="#"
+          class="auth-choice-panel__primary"
+          @click.prevent
+        >
+          Zaloguj się
+        </a>
+
+        <a
+          href="#"
+          class="auth-choice-panel__secondary"
+          @click.prevent
+        >
+          Załóż konto
+        </a>
+      </div>
+    </aside>
+
     <AddFlightPanel
-      v-if="addFlightOpen"
+      v-if="
+        addFlightOpen &&
+        !fullscreenMapMode
+      "
       v-show="!rightPanelCollapsed"
       :user-id="USER_ID"
       :mode="flightFormMode"
@@ -2561,7 +2949,8 @@ onMounted(
       v-if="
         aircraftReturnToStatistics &&
         activeTab === 'flights' &&
-        selectedFlightId === null
+        selectedFlightId === null &&
+        !fullscreenMapMode
       "
       type="button"
       class="aircraft-return-button"
@@ -2581,7 +2970,10 @@ onMounted(
     </button>
 
     <AirportDetailsPanel
-      v-if="selectedAirport"
+      v-if="
+        selectedAirport &&
+        !fullscreenMapMode
+      "
       v-show="!rightPanelCollapsed"
       :airport="selectedAirport"
       :flights="visibleFlights"
@@ -2597,7 +2989,8 @@ onMounted(
       v-if="
         selectedRoute &&
         selectedFlightId ===
-          null
+          null &&
+        !fullscreenMapMode
       "
       v-show="!rightPanelCollapsed"
       class="route-panel-wrapper"
@@ -2636,7 +3029,8 @@ onMounted(
     <div
       v-if="
         selectedFlightId !==
-        null
+        null &&
+        !fullscreenMapMode
       "
       v-show="!rightPanelCollapsed"
       class="flight-panel-wrapper"
@@ -2656,7 +3050,10 @@ onMounted(
     </div>
 
     <AirportStatisticsPanel
-      v-if="airportStatisticsOpen"
+      v-if="
+        airportStatisticsOpen &&
+        !fullscreenMapMode
+      "
       v-show="!rightPanelCollapsed"
       :flights="visibleFlights"
       @airport="openAirportFromStatistics"
@@ -2664,7 +3061,10 @@ onMounted(
     />
 
     <StatisticsMetricPanel
-      v-if="statisticsReport"
+      v-if="
+        statisticsReport &&
+        !fullscreenMapMode
+      "
       v-show="!rightPanelCollapsed"
       :flights="visibleFlights"
       :report-type="statisticsReport"
@@ -2672,7 +3072,10 @@ onMounted(
     />
 
     <StatisticsCategoryPanel
-      v-if="statisticsSection"
+      v-if="
+        statisticsSection &&
+        !fullscreenMapMode
+      "
       v-show="!rightPanelCollapsed"
       :flights="visibleFlights"
       :section="statisticsSection"
@@ -2680,6 +3083,63 @@ onMounted(
       @route="openRouteFromStatistics"
       @close="closeStatisticsSection"
     />
+
+    <footer
+      v-if="!fullscreenMapMode"
+      class="legal-footer"
+      aria-label="Informacje prawne"
+    >
+      <span>
+        © 2026 Mapa Lotów
+      </span>
+
+      <a
+        href="#"
+        @click.prevent
+      >
+        Regulamin
+      </a>
+
+      <a
+        href="#"
+        @click.prevent
+      >
+        Polityka Prywatności
+      </a>
+
+      <a
+        href="#"
+        @click.prevent
+      >
+        O projekcie
+      </a>
+
+      <a
+        href="#"
+        @click.prevent
+      >
+        Kontakt
+      </a>
+    </footer>
+
+    <button
+      v-if="fullscreenMapMode"
+      type="button"
+      class="fullscreen-exit-button"
+      title="Wyjdź z pełnego ekranu"
+      aria-label="Wyjdź z pełnego ekranu"
+      @click="toggleMapFullscreen"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        aria-hidden="true"
+      >
+        <path d="M9 9H4V4" />
+        <path d="M15 9h5V4" />
+        <path d="M20 15v5h-5" />
+        <path d="M9 15H4v5" />
+      </svg>
+    </button>
   </main>
 </template>
 
@@ -2722,11 +3182,238 @@ textarea {
   height: 100%;
 }
 
+
+.app-shell:fullscreen {
+  background: #f4f4f4;
+}
+
+
+.legal-footer {
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  z-index: 17;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.74);
+  color: rgba(74, 85, 104, 0.78);
+  font-size: 11px;
+  font-weight: 550;
+  line-height: 1;
+  white-space: nowrap;
+  backdrop-filter: blur(5px);
+  transform: translateX(-50%);
+}
+
+
+.legal-footer a {
+  color: inherit;
+  text-decoration: none;
+}
+
+
+.legal-footer a:hover {
+  color: #0b2d5c;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+
+.fullscreen-exit-button {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 120;
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid rgba(11, 45, 92, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.90);
+  color: #536171;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.10);
+  backdrop-filter: blur(8px);
+}
+
+
+.fullscreen-exit-button:hover {
+  background: #fff;
+  color: #0b2d5c;
+}
+
+
+.fullscreen-exit-button svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+
+@media (max-width: 760px) {
+  .legal-footer {
+    bottom: 3px;
+    gap: 5px;
+    max-width: calc(100vw - 20px);
+    overflow: hidden;
+    padding: 3px 7px;
+    font-size: 10px;
+  }
+}
+
 .map {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+}
+
+
+.auth-choice-panel {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 34;
+  width: min(390px, calc(100vw - 36px));
+  padding: 20px;
+  border: 1px solid #e0e4e9;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 14px 38px rgba(15, 23, 42, 0.15);
+  backdrop-filter: blur(10px);
+}
+
+
+.auth-choice-panel__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: #f1f2f3;
+  color: #505862;
+  cursor: pointer;
+  font-size: 22px;
+  line-height: 1;
+}
+
+
+.auth-choice-panel__header {
+  padding-right: 38px;
+}
+
+
+.auth-choice-panel__eyebrow {
+  margin-bottom: 5px;
+  color: #9098a3;
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+
+.auth-choice-panel h2 {
+  margin: 0;
+  color: #0b2d5c;
+  font-size: 19px;
+  line-height: 1.15;
+}
+
+
+.auth-choice-panel p {
+  margin: 9px 0 0;
+  color: #687483;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+
+.auth-choice-panel__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-top: 18px;
+}
+
+
+.auth-choice-panel__actions a {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+
+.auth-choice-panel__primary {
+  border: 1px solid #0b2d5c;
+  background: #0b2d5c;
+  color: #fff;
+}
+
+
+.auth-choice-panel__secondary {
+  border: 1px solid #d8dde4;
+  background: #fff;
+  color: #0b2d5c;
+}
+
+
+@media (max-width: 560px) {
+  .auth-choice-panel {
+    top: 10px;
+    right: 10px;
+    width: calc(100vw - 20px);
+  }
+
+  .auth-choice-panel__actions {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+.transazja-ad-panel {
+  position: absolute;
+  right: 18px;
+  bottom: 38px;
+  z-index: 18;
+  width: 360px;
+  max-width: calc(100vw - 36px);
+  pointer-events: auto;
+}
+
+
+@media (max-width: 900px) {
+  .transazja-ad-panel {
+    right: 10px;
+    bottom: 34px;
+    width: min(
+      340px,
+      calc(100vw - 20px)
+    );
+  }
 }
 
 .route-panel-wrapper {

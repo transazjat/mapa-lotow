@@ -257,3 +257,54 @@ export async function deleteFlight(
     response,
   )
 }
+
+
+
+export interface TransAzjaOffer {
+  id: string
+  title: string
+  days: number
+  date_text: string
+  status:
+    | 'zapisy'
+    | 'potwierdzony'
+    | 'promocja'
+  image: string | null
+  url: string
+}
+
+
+interface TransAzjaOffersResponse {
+  status: 'ok'
+  source: string
+  offers: TransAzjaOffer[]
+  warning?: string
+}
+
+
+export async function getTransAzjaOffers():
+Promise<TransAzjaOffer[]> {
+  const response =
+    await fetch(
+      '/api/transazja/offers',
+      {
+        headers: {
+          Accept:
+            'application/json',
+        },
+      },
+    )
+
+  const data =
+    await readJson<
+      TransAzjaOffersResponse
+    >(
+      response,
+    )
+
+  return Array.isArray(
+    data.offers,
+  )
+    ? data.offers
+    : []
+}

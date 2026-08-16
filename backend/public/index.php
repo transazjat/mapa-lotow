@@ -7,6 +7,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
 use Transazja\MapaLotowApi\Controller\FlightController;
+use Transazja\MapaLotowApi\Controller\TransAzjaOfferController;
 use Transazja\MapaLotowApi\Controller\UserOverviewController;
 use Transazja\MapaLotowApi\Controller\UserSummaryController;
 use Transazja\MapaLotowApi\Database\Database;
@@ -77,8 +78,14 @@ $app->get('/api/db-test', function (
 });
 
 $flightController = new FlightController($pdo);
+$transAzjaOfferController = new TransAzjaOfferController();
 $UserOverviewController = new UserOverviewController($pdo);
 $userSummaryController = new UserSummaryController($pdo);
+
+$app->get(
+    '/api/transazja/offers',
+    [$transAzjaOfferController, 'index']
+);
 
 $app->get(
     '/api/flights',
