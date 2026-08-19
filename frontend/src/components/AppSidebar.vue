@@ -25,6 +25,7 @@ const props = defineProps<{
   initialAircraftFilterKey?: string | null
   authenticated?: boolean
   userName?: string
+  privacyMode?: 'private' | 'link' | 'public'
 }>()
 
 
@@ -41,6 +42,8 @@ const emit = defineEmits<{
   addFlight: []
   fullscreen: []
   authChoice: []
+  accountAction: [mode: 'login' | 'register' | 'account' | 'export']
+  logout: []
 }>()
 
 
@@ -147,6 +150,42 @@ const routes =
             `${flight.departure_airport_id}>${flight.arrival_airport_id}`,
         ),
       ).size,
+  )
+
+
+const privacyLabel =
+  computed(
+    () => {
+      if (!props.authenticated) {
+        return ''
+      }
+
+      if (props.privacyMode === 'link') {
+        return 'Dostępna przez link'
+      }
+
+      if (props.privacyMode === 'public') {
+        return 'Mapa publiczna'
+      }
+
+      return 'Mapa prywatna'
+    },
+  )
+
+
+const privacyIcon =
+  computed(
+    () => {
+      if (props.privacyMode === 'link') {
+        return '🔗'
+      }
+
+      if (props.privacyMode === 'public') {
+        return '🌐'
+      }
+
+      return '🔒'
+    },
   )
 
 
@@ -295,7 +334,11 @@ function openStatisticsSection(
       class="sidebar-content"
     >
       <header class="sidebar-header">
-        <div class="brand-lockup">
+        <a
+          href="/"
+          class="brand-lockup"
+          aria-label="Przejdź do strony głównej Mapy Lotów"
+        >
           <img
             :src="flightSignUrl"
             class="brand-symbol"
@@ -323,7 +366,7 @@ function openStatisticsSection(
               <span>W</span>
             </div>
           </div>
-        </div>
+        </a>
 
         <div
           class="app-toolbox"
@@ -346,13 +389,37 @@ function openStatisticsSection(
               <path d="M8 21H3v-5" />
             </svg>
           </button>
+
+          <button
+            v-if="authenticated"
+            type="button"
+            class="app-toolbox__button"
+            title="Wyloguj"
+            aria-label="Wyloguj"
+            @click="emit('logout')"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path d="M10 5H5v14h5" />
+              <path d="M13 8l4 4-4 4" />
+              <path d="M17 12H9" />
+            </svg>
+          </button>
         </div>
 
         <div
           v-if="authenticated"
-          class="user-name"
+          class="toolbar-privacy-status"
         >
-          {{ userName || 'Użytkownik' }}
+          <span aria-hidden="true">
+            {{ privacyIcon }}
+          </span>
+
+          <span>
+            {{ privacyLabel }}
+          </span>
         </div>
 
         <div
@@ -362,7 +429,7 @@ function openStatisticsSection(
         >
           <a
             href="#"
-            @click.prevent
+            @click.prevent="emit('accountAction', 'login')"
           >
             Zaloguj się
           </a>
@@ -373,12 +440,19 @@ function openStatisticsSection(
 
           <a
             href="#"
-            @click.prevent
+            @click.prevent="emit('accountAction', 'register')"
           >
             Załóż konto
           </a>
         </div>
       </header>
+
+      <div
+        v-if="authenticated"
+        class="user-name"
+      >
+        {{ userName || 'Użytkownik' }}
+      </div>
 
       <nav class="main-nav">
         <button
@@ -444,7 +518,10 @@ function openStatisticsSection(
         </span>
       </button>
 
-      <section class="scope-section">
+      <section
+        v-if="activeTab !== 'account'"
+        class="scope-section"
+      >
         <div class="scope-title">
           Zakres lotów
         </div>
@@ -641,32 +718,137 @@ function openStatisticsSection(
         v-else
         class="account-placeholder"
       >
-        <strong>Konto</strong>
-
         <template v-if="authenticated">
-          <p>
-            Profil i ustawienia konta użytkownika
-            dodamy w kolejnym etapie.
-          </p>
+          <div class="account-tools-grid">
+            <button
+              type="button"
+              class="account-tool-card account-tool-card--future"
+              title="Funkcja będzie dostępna w przyszłości"
+            >
+              <span
+                class="account-tool-card__icon"
+                aria-hidden="true"
+              >
+                <svg viewBox="0 0 24 24">
+                  <path d="M8 4h8v3a4 4 0 01-8 0V4z" />
+                  <path d="M9 16h6" />
+                  <path d="M12 11v5" />
+                  <path d="M7 6H4v1a4 4 0 004 4" />
+                  <path d="M17 6h3v1a4 4 0 01-4 4" />
+                  <path d="M8 20h8" />
+                </svg>
+              </span>
+
+              <strong>Osiągnięcia</strong>
+              <span>Odznaki i kamienie milowe</span>
+            </button>
+
+            <button
+              type="button"
+              class="account-tool-card account-tool-card--future"
+              title="Funkcja będzie dostępna w przyszłości"
+            >
+              <span
+                class="account-tool-card__icon"
+                aria-hidden="true"
+              >
+                <svg viewBox="0 0 24 24">
+                  <circle cx="18" cy="5" r="2.4" />
+                  <circle cx="6" cy="12" r="2.4" />
+                  <circle cx="18" cy="19" r="2.4" />
+                  <path d="M8.3 10.9l7.4-4.7" />
+                  <path d="M8.3 13.1l7.4 4.7" />
+                </svg>
+              </span>
+
+              <strong>Udostępnij</strong>
+              <span>Mapa, grafiki i social media</span>
+            </button>
+
+            <button
+              type="button"
+              class="account-tool-card account-tool-card--future"
+              title="Funkcja będzie dostępna w przyszłości"
+            >
+              <span
+                class="account-tool-card__icon"
+                aria-hidden="true"
+              >
+                <svg viewBox="0 0 24 24">
+                  <path d="M12 4v10" />
+                  <path d="M8.5 10.5L12 14l3.5-3.5" />
+                  <path d="M5 15v4h14v-4" />
+                </svg>
+              </span>
+
+              <strong>Import danych</strong>
+              <span>Wczytaj historię lotów</span>
+            </button>
+
+            <button
+              type="button"
+              class="account-tool-card account-tool-card--active"
+              @click="emit('accountAction', 'export')"
+            >
+              <span
+                class="account-tool-card__icon"
+                aria-hidden="true"
+              >
+                <svg viewBox="0 0 24 24">
+                  <path d="M12 15V5" />
+                  <path d="M8.5 8.5L12 5l3.5 3.5" />
+                  <path d="M5 14v5h14v-5" />
+                </svg>
+              </span>
+
+              <strong>Eksport danych</strong>
+              <span>Pobierz własne loty</span>
+            </button>
+
+            <button
+              type="button"
+              class="account-tool-card account-tool-card--settings"
+              @click="emit('accountAction', 'account')"
+            >
+              <span
+                class="account-tool-card__icon account-tool-card__icon--settings"
+                aria-hidden="true"
+              >
+                <svg viewBox="0 0 24 24">
+                  <path d="M4 7h10" />
+                  <path d="M18 7h2" />
+                  <circle cx="16" cy="7" r="2" />
+                  <path d="M4 17h2" />
+                  <path d="M10 17h10" />
+                  <circle cx="8" cy="17" r="2" />
+                  <path d="M4 12h5" />
+                  <path d="M13 12h7" />
+                  <circle cx="11" cy="12" r="2" />
+                </svg>
+              </span>
+
+              <strong>Ustawienia konta</strong>
+              <span>Profil, hasło i prywatność</span>
+            </button>
+          </div>
         </template>
 
         <template v-else>
-          <p>
-            Zaloguj się do istniejącego konta
-            albo załóż nowe.
+          <p class="account-login-copy">
+            Zaloguj się do istniejącego konta albo załóż nowe.
           </p>
 
-          <div class="account-placeholder__actions">
+          <div class="account-placeholder__actions account-placeholder__actions--guest">
             <a
               href="#"
-              @click.prevent
+              @click.prevent="emit('accountAction', 'login')"
             >
               Zaloguj się
             </a>
 
             <a
               href="#"
-              @click.prevent
+              @click.prevent="emit('accountAction', 'register')"
             >
               Załóż konto
             </a>
@@ -849,6 +1031,14 @@ function openStatisticsSection(
   align-items: flex-start;
   justify-content: flex-start;
   gap: 10px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.brand-lockup:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid rgba(11, 45, 92, 0.35);
+  outline-offset: 3px;
 }
 
 .brand-symbol {
@@ -908,11 +1098,128 @@ function openStatisticsSection(
 }
 
 .user-name {
-  margin-top: 8px;
-  padding: 0;
+  margin: 10px 0 -10px;
+  padding-left: 3px;
   color: #64748b;
   font-size: 13px;
   font-weight: 600;
+  text-align: left;
+}
+
+
+.toolbar-privacy-status {
+  position: absolute;
+  top: 39px;
+  right: -10px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  color: #7a8794;
+  font-size: 10.5px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+
+.account-tools-grid {
+  display: grid;
+  grid-template-columns:
+    repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+
+.account-tool-card {
+  display: grid;
+  min-height: 92px;
+  align-content: center;
+  justify-items: center;
+  gap: 4px;
+  padding: 10px 8px;
+  border: 1px solid #e0e6ec;
+  border-radius: 11px;
+  background: #f7f8fa;
+  color: #4b5968;
+  text-align: center;
+}
+
+
+.account-tool-card strong {
+  color: #0b2d5c;
+  font-size: 11px;
+}
+
+
+.account-tool-card > span:last-child {
+  color: #7c8793;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+
+.account-tool-card__icon {
+  display: flex;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
+  color: #597795;
+}
+
+
+.account-tool-card__icon svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+
+.account-tool-card--future {
+  cursor: default;
+  opacity: 0.78;
+}
+
+
+.account-tool-card--active,
+.account-tool-card--settings {
+  cursor: pointer;
+  background: #fff;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+
+.account-tool-card--settings {
+  grid-column: 1 / -1;
+  min-height: 76px;
+}
+
+
+.account-tool-card--active:hover,
+.account-tool-card--settings:hover {
+  border-color: #aebfd1;
+  background: #f6f9fc;
+  transform: translateY(-1px);
+}
+
+
+.account-tool-card__icon--settings svg {
+  width: 23px;
+  height: 23px;
+}
+
+
+.account-login-copy {
+  margin: 0;
+  color: #626f7d;
+  font-size: 12px;
+  line-height: 1.5;
   text-align: center;
 }
 
@@ -950,21 +1257,39 @@ function openStatisticsSection(
   margin-top: 10px;
 }
 
+.account-placeholder__actions--guest {
+  justify-content: center;
+}
+
 
 .account-placeholder__actions a {
-  padding: 7px 10px;
-  border: 1px solid #d9dee5;
-  border-radius: 7px;
-  background: #fff;
+  padding: 8px 12px;
+  border: 1px solid #a9bacd;
+  border-radius: 8px;
+  background:
+    linear-gradient(
+      to bottom,
+      #dbe6f1,
+      #cfdeeb
+    );
   color: #0b2d5c;
-  font-size: 10px;
-  font-weight: 700;
+  box-shadow:
+    0 2px 6px
+    rgba(11, 45, 92, 0.08);
+  font-size: 10.5px;
+  font-weight: 500;
   text-decoration: none;
 }
 
 
 .account-placeholder__actions a:hover {
-  background: #f5f7f9;
+  border-color: #8ea6bf;
+  background:
+    linear-gradient(
+      to bottom,
+      #d2e0ed,
+      #c3d5e5
+    );
 }
 
 .main-nav {
@@ -1324,7 +1649,7 @@ function openStatisticsSection(
   }
 
   .user-name {
-    padding-left: 54px;
+    padding-left: 3px;
     font-size: 13px;
   }
 

@@ -27,11 +27,16 @@ import StatisticsMetricPanel from './components/StatisticsMetricPanel.vue'
 import StatisticsCategoryPanel from './components/StatisticsCategoryPanel.vue'
 import AddFlightPanel from './components/AddFlightPanel.vue'
 import TripAdCard from './components/TripAdCard.vue'
+import AccountPanel from './components/AccountPanel.vue'
 
 import {
   deleteFlight,
+  getAuthState,
   getFlight,
+  getPublicProfile,
+  getSharedMap,
   getUserFlights,
+  logoutAccount,
 } from './services/api'
 
 import {
@@ -62,29 +67,125 @@ import type {
   SidebarTab,
 } from './types/flight'
 
+import type {
+  AccountUser,
+  PublicMapProfile,
+} from './types/account'
+
 setWorkerUrl(
   workerUrl,
 )
 
-const USER_ID =
-  75
+type AccountPanelMode =
+  | 'login'
+  | 'register'
+  | 'forgot'
+  | 'reset'
+  | 'activate'
+  | 'account'
+  | 'profile'
+  | 'privacy'
+  | 'password'
+  | 'email'
+  | 'email-confirm'
+  | 'export'
 
 
-/*
-|--------------------------------------------------------------------------
-| Stan konta - prototyp interfejsu
-|--------------------------------------------------------------------------
-|
-| Nie mamy jeszcze prawdziwego systemu logowania. Ustawienie false pozwala
-| zobaczyć docelowy wygląd linków "Zaloguj się" / "Załóż konto", a dane
-| aplikacji nadal są pobierane z konta testowego USER_ID = 75.
-|
-*/
-const DEMO_AUTHENTICATED =
-  false
+const currentUser =
+  ref<AccountUser | null>(
+    null,
+  )
 
-const DEMO_USER_NAME =
-  'Krzysztof'
+const accountPanelMode =
+  ref<AccountPanelMode | null>(
+    null,
+  )
+
+const accountToken =
+  ref<string | null>(
+    null,
+  )
+
+const publicProfile =
+  ref<PublicMapProfile | null>(
+    null,
+  )
+
+const publicAccessMode =
+  ref<'public' | 'link' | null>(
+    null,
+  )
+
+const authenticated =
+  computed(
+    () => currentUser.value !== null,
+  )
+
+const logoutConfirmOpen =
+  ref(false)
+
+
+const MAIN_PAGE_TITLE =
+  'Mapa Lotów - Stwórz własną mapę lotów i podróży'
+
+const accountPageTitles:
+Record<AccountPanelMode, string> = {
+  login:
+    'Zaloguj się - Mapa Lotów',
+  register:
+    'Załóż konto - Mapa Lotów',
+  forgot:
+    'Odzyskaj hasło - Mapa Lotów',
+  reset:
+    'Ustaw nowe hasło - Mapa Lotów',
+  activate:
+    'Aktywuj konto - Mapa Lotów',
+  account:
+    'Ustawienia konta - Mapa Lotów',
+  profile:
+    'Profil - Mapa Lotów',
+  privacy:
+    'Prywatność mapy - Mapa Lotów',
+  password:
+    'Zmień hasło - Mapa Lotów',
+  email:
+    'Zmień adres e-mail - Mapa Lotów',
+  'email-confirm':
+    'Potwierdź nowy adres e-mail - Mapa Lotów',
+  export:
+    'Eksport danych - Mapa Lotów',
+}
+
+const pageTitle =
+  computed(
+    () => {
+      if (publicProfile.value) {
+        return publicAccessMode.value ===
+          'link'
+          ? `Mapa udostępniona przez ${publicProfile.value.nick} - Mapa Lotów`
+          : `Profil ${publicProfile.value.nick} - Mapa Lotów`
+      }
+
+      if (accountPanelMode.value) {
+        return accountPageTitles[
+          accountPanelMode.value
+        ]
+      }
+
+      return MAIN_PAGE_TITLE
+    },
+  )
+
+watch(
+  pageTitle,
+  (title) => {
+    document.title =
+      title
+  },
+  {
+    immediate: true,
+  },
+)
 
 
 const appShell =
@@ -160,6 +261,18 @@ const transAzjaAdPanel =
 const rightPanelKey =
   computed(
     (): string | null => {
+      if (
+        accountPanelMode.value
+      ) {
+        return `account:${accountPanelMode.value}`
+      }
+
+      if (
+        authChoiceOpen.value
+      ) {
+        return 'auth-choice'
+      }
+
       if (
         addFlightOpen.value
       ) {
@@ -770,6 +883,13 @@ function changeTab(
       null
   }
 
+  if (
+    tab !== 'account'
+  ) {
+    accountPanelMode.value =
+      null
+  }
+
   activeTab.value =
     tab
 
@@ -1054,7 +1174,213 @@ function backToAircraftStatistics(): void {
   }
 }
 
+function closeOtherRightPanelsForAccount(): void {
+  authChoiceOpen.value =
+    false
+
+  addFlightOpen.value =
+    false
+
+  closeStatisticsPanels()
+
+  selectedAirport.value =
+    null
+
+  selectedRoute.value =
+    null
+
+  selectedFlightId.value =
+    null
+
+  selectedFlight.value =
+    null
+
+  rightPanelCollapsed.value =
+    false
+}
+
+
+function openAccountPanel(
+  mode:
+    | 'login'
+    | 'register'
+    | 'account'
+    | 'export',
+): void {
+  closeOtherRightPanelsForAccount()
+
+  activeTab.value =
+    'account'
+
+  accountPanelMode.value =
+    mode
+
+  accountToken.value =
+    null
+}
+
+
+function setAccountPanelMode(
+  mode: AccountPanelMode,
+): void {
+  accountPanelMode.value =
+    mode
+}
+
+
+function closeAccountPanel(): void {
+  accountPanelMode.value =
+    null
+}
+
+
+async function refreshAuthenticatedFlights(): Promise<void> {
+  if (!currentUser.value) {
+    allFlights.value = []
+    filteredFlights.value = []
+
+    if (mapInstance) {
+      updateFlightMapData(
+        mapInstance,
+        [],
+      )
+    }
+
+    return
+  }
+
+  const response =
+    await getUserFlights()
+
+  allFlights.value =
+    response.flights
+
+  filteredFlights.value =
+    filterFlightsByScope(
+      response.flights,
+      scope.value,
+    )
+
+  if (mapInstance) {
+    updateFlightMapData(
+      mapInstance,
+      mapFlights.value,
+    )
+  }
+}
+
+
+async function handleAuthenticatedUser(
+  user: AccountUser,
+): Promise<void> {
+  const keepActivationPanel =
+    accountPanelMode.value ===
+      'activate'
+
+  currentUser.value =
+    user
+
+  publicProfile.value =
+    null
+
+  publicAccessMode.value =
+    null
+
+  activeTab.value =
+    'map'
+
+  if (!keepActivationPanel) {
+    accountPanelMode.value =
+      null
+  }
+
+  await refreshAuthenticatedFlights()
+}
+
+
+function requestToolboxLogout(): void {
+  logoutConfirmOpen.value =
+    true
+}
+
+
+function cancelToolboxLogout(): void {
+  logoutConfirmOpen.value =
+    false
+}
+
+
+async function confirmToolboxLogout(): Promise<void> {
+  try {
+    await logoutAccount()
+  } catch (error) {
+    console.error(
+      'Nie udało się wylogować.',
+      error,
+    )
+    return
+  }
+
+  logoutConfirmOpen.value =
+    false
+
+  currentUser.value =
+    null
+
+  accountPanelMode.value =
+    null
+
+  authChoiceOpen.value =
+    false
+
+  activeTab.value =
+    'map'
+
+  allFlights.value = []
+  filteredFlights.value = []
+
+  clearSelection()
+  closeStatisticsPanels()
+
+  if (mapInstance) {
+    updateFlightMapData(
+      mapInstance,
+      [],
+    )
+  }
+}
+
+
+function handleAccountUserUpdated(
+  user: AccountUser,
+): void {
+  currentUser.value =
+    user
+}
+
+
+async function handleLoggedOut(): Promise<void> {
+  currentUser.value =
+    null
+
+  allFlights.value = []
+  filteredFlights.value = []
+
+  clearSelection()
+
+  if (mapInstance) {
+    updateFlightMapData(
+      mapInstance,
+      [],
+    )
+  }
+}
+
+
 function openAuthChoice(): void {
+  accountPanelMode.value =
+    null
+
   closeStatisticsPanels()
 
   addFlightOpen.value =
@@ -1090,6 +1416,14 @@ function closeAuthChoice(): void {
 
 
 function openAddFlight(): void {
+  if (!currentUser.value) {
+    openAuthChoice()
+    return
+  }
+
+  accountPanelMode.value =
+    null
+
   authChoiceOpen.value =
     false
 
@@ -1202,9 +1536,7 @@ async function refreshFlightsAfterSave(
     number,
 ): Promise<void> {
   const response =
-    await getUserFlights(
-      USER_ID,
-    )
+    await getUserFlights()
 
   allFlights.value =
     response.flights
@@ -1326,13 +1658,10 @@ async function deleteSelectedFlight(): Promise<void> {
   try {
     await deleteFlight(
       flightId,
-      USER_ID,
     )
 
     const response =
-      await getUserFlights(
-        USER_ID,
-      )
+      await getUserFlights()
 
     allFlights.value =
       response.flights
@@ -2675,6 +3004,129 @@ onMounted(
       handleFullscreenChange,
     )
 
+    const params =
+      new URLSearchParams(
+        window.location.search,
+      )
+
+    const requestedAccountMode =
+      params.get('konto')
+
+    const token =
+      params.get('token')
+
+    if (
+      requestedAccountMode === 'aktywacja' &&
+      token
+    ) {
+      accountPanelMode.value =
+        'activate'
+
+      accountToken.value =
+        token
+
+      activeTab.value =
+        'account'
+    } else if (
+      requestedAccountMode === 'reset' &&
+      token
+    ) {
+      accountPanelMode.value =
+        'reset'
+
+      accountToken.value =
+        token
+
+      activeTab.value =
+        'account'
+    }
+    else if (
+      requestedAccountMode === 'email' &&
+      token
+    ) {
+      accountPanelMode.value =
+        'email-confirm'
+
+      accountToken.value =
+        token
+
+      activeTab.value =
+        'account'
+    }
+
+    const path =
+      decodeURIComponent(
+        window.location.pathname,
+      )
+
+    const publicMatch =
+      path.match(
+        /^\/profil\/([^/]+)\/?$/,
+      )
+
+    const sharedMatch =
+      path.match(
+        /^\/udostepniona\/([^/]+)\/?$/,
+      )
+
+    try {
+      if (publicMatch) {
+        const response =
+          await getPublicProfile(
+            publicMatch[1],
+          )
+
+        publicProfile.value =
+          response.profile
+
+        publicAccessMode.value =
+          response.access_mode
+
+        allFlights.value =
+          response.flights
+      } else if (sharedMatch) {
+        const response =
+          await getSharedMap(
+            sharedMatch[1],
+          )
+
+        publicProfile.value =
+          response.profile
+
+        publicAccessMode.value =
+          response.access_mode
+
+        allFlights.value =
+          response.flights
+      } else {
+        const authState =
+          await getAuthState()
+
+        currentUser.value =
+          authState.user
+
+        if (authState.authenticated) {
+          const response =
+            await getUserFlights()
+
+          allFlights.value =
+            response.flights
+        } else {
+          allFlights.value = []
+        }
+      }
+
+      filteredFlights.value =
+        filterFlightsByScope(
+          allFlights.value,
+          scope.value,
+        )
+    } catch (error) {
+      console.error(error)
+      allFlights.value = []
+      filteredFlights.value = []
+    }
+
     if (
       !mapContainer.value
     ) {
@@ -2698,73 +3150,53 @@ onMounted(
     mapInstance =
       map
 
-    try {
-      const response =
-        await getUserFlights(
-          USER_ID,
+    map.on(
+      'load',
+
+      async () => {
+        addFlightsToMap(
+          map,
+          mapFlights.value,
+
+          (route) => {
+            routeReturnSection.value =
+              null
+
+            selectRoute(
+              route,
+            )
+          },
         )
 
-      allFlights.value =
-        response.flights
+        await addAirportsToMap(
+          map,
+          mapFlights.value,
 
-      filteredFlights.value =
-        filterFlightsByScope(
-          response.flights,
-          scope.value,
+          (airport) => {
+            closeStatisticsPanels()
+
+            routeReturnSection.value =
+              null
+
+            selectedRoute.value =
+              null
+
+            selectedFlightId.value =
+              null
+
+            selectedFlight.value =
+              null
+
+            clearHighlightedRoute(
+              map,
+            )
+
+            selectedAirport.value =
+              airport
+          },
         )
-
-      map.on(
-        'load',
-
-        async () => {
-          addFlightsToMap(
-            map,
-            mapFlights.value,
-
-            (route) => {
-              routeReturnSection.value =
-                null
-
-              selectRoute(
-                route,
-              )
-            },
-          )
-
-          await addAirportsToMap(
-            map,
-            mapFlights.value,
-
-            (airport) => {
-              closeStatisticsPanels()
-
-              routeReturnSection.value =
-                null
-
-              selectedRoute.value =
-                null
-
-              selectedFlightId.value =
-                null
-
-              selectedFlight.value =
-                null
-
-              clearHighlightedRoute(
-                map,
-              )
-
-              selectedAirport.value =
-                airport
-            },
-          )
-        },
-      )
-    } catch (err) {
-      console.error(
-        err,
-      )
-    }
+      },
+    )
   },
 )
 
@@ -2806,8 +3238,9 @@ onBeforeUnmount(
       :collapsed="sidebarCollapsed"
       :active-flight-id="selectedFlightId"
       :initial-aircraft-filter-key="aircraftFilterKey"
-      :authenticated="DEMO_AUTHENTICATED"
-      :user-name="DEMO_USER_NAME"
+      :authenticated="authenticated"
+      :user-name="currentUser?.nick ?? ''"
+      :privacy-mode="currentUser?.privacy_mode ?? 'private'"
       @toggle="toggleSidebar"
       @tab="changeTab"
       @scope="changeScope"
@@ -2819,7 +3252,9 @@ onBeforeUnmount(
       @statistics-section="openStatisticsSection"
       @add-flight="openAddFlight"
       @auth-choice="openAuthChoice"
+      @account-action="openAccountPanel"
       @fullscreen="toggleMapFullscreen"
+      @logout="requestToolboxLogout"
     />
 
     <div
@@ -2836,6 +3271,15 @@ onBeforeUnmount(
     <button
       v-if="
         rightPanelKey &&
+        ![
+          'activate',
+          'login',
+          'register',
+          'reset',
+          'email-confirm',
+        ].includes(
+          accountPanelMode ?? '',
+        ) &&
         !fullscreenMapMode
       "
       ref="rightPanelCollapseButton"
@@ -2916,7 +3360,7 @@ onBeforeUnmount(
         <a
           href="#"
           class="auth-choice-panel__primary"
-          @click.prevent
+          @click.prevent="openAccountPanel('login')"
         >
           Zaloguj się
         </a>
@@ -2924,12 +3368,107 @@ onBeforeUnmount(
         <a
           href="#"
           class="auth-choice-panel__secondary"
-          @click.prevent
+          @click.prevent="openAccountPanel('register')"
         >
           Załóż konto
         </a>
       </div>
     </aside>
+
+    <div
+      v-if="
+        logoutConfirmOpen &&
+        !fullscreenMapMode
+      "
+      class="logout-confirm-overlay"
+      @click.self="cancelToolboxLogout"
+    >
+      <section
+        class="logout-confirm-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="logout-confirm-title"
+      >
+        <div class="logout-confirm-panel__icon">
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path d="M10 5H5v14h5" />
+            <path d="M13 8l4 4-4 4" />
+            <path d="M17 12H9" />
+          </svg>
+        </div>
+
+        <h2 id="logout-confirm-title">
+          Czy chcesz opuścić Mapę Lotów?
+        </h2>
+
+        <p>
+          Zostaniesz wylogowany z bieżącej sesji.
+        </p>
+
+        <div class="logout-confirm-panel__actions">
+          <button
+            type="button"
+            class="logout-confirm-panel__cancel"
+            @click="cancelToolboxLogout"
+          >
+            Zostań
+          </button>
+
+          <button
+            type="button"
+            class="logout-confirm-panel__confirm"
+            @click="confirmToolboxLogout"
+          >
+            Wyloguj
+          </button>
+        </div>
+      </section>
+    </div>
+
+    <AccountPanel
+      v-if="
+        accountPanelMode &&
+        !fullscreenMapMode
+      "
+      v-show="!rightPanelCollapsed"
+      :user="currentUser"
+      :mode="accountPanelMode"
+      :token="accountToken"
+      @close="closeAccountPanel"
+      @mode="setAccountPanelMode"
+      @authenticated="handleAuthenticatedUser"
+      @user-updated="handleAccountUserUpdated"
+      @logged-out="handleLoggedOut"
+    />
+
+    <div
+      v-if="
+        publicProfile &&
+        !fullscreenMapMode
+      "
+      class="public-profile-badge"
+    >
+      <div class="public-profile-badge__avatar">
+        <img
+          :src="publicProfile.avatar_url"
+          alt=""
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
+        >
+        <span>
+          {{ publicProfile.nick.charAt(0).toUpperCase() }}
+        </span>
+      </div>
+
+      <div>
+        <small>
+          {{ publicAccessMode === 'link' ? 'Mapa udostępniona' : 'Profil publiczny' }}
+        </small>
+        <strong>{{ publicProfile.nick }}</strong>
+      </div>
+    </div>
 
     <AddFlightPanel
       v-if="
@@ -2937,7 +3476,7 @@ onBeforeUnmount(
         !fullscreenMapMode
       "
       v-show="!rightPanelCollapsed"
-      :user-id="USER_ID"
+      :user-id="currentUser?.id ?? 0"
       :mode="flightFormMode"
       :initial-flight="flightFormInitialFlight"
       @close="closeAddFlight"
@@ -3188,6 +3727,100 @@ textarea {
 }
 
 
+.logout-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.26);
+  backdrop-filter: blur(3px);
+}
+
+
+.logout-confirm-panel {
+  width: min(390px, calc(100vw - 36px));
+  box-sizing: border-box;
+  padding: 24px;
+  border: 1px solid #dbe2e9;
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.99);
+  box-shadow: 0 20px 52px rgba(15, 23, 42, 0.22);
+  text-align: center;
+}
+
+
+.logout-confirm-panel__icon {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  border-radius: 50%;
+  background: #eef3f8;
+  color: #0b2d5c;
+}
+
+
+.logout-confirm-panel__icon svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+
+.logout-confirm-panel h2 {
+  margin: 0;
+  color: #0b2d5c;
+  font-size: 20px;
+}
+
+
+.logout-confirm-panel p {
+  margin: 9px 0 20px;
+  color: #687686;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+
+.logout-confirm-panel__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+}
+
+
+.logout-confirm-panel__actions button {
+  min-height: 42px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+
+.logout-confirm-panel__cancel {
+  border: 1px solid #d6dde5;
+  background: #f7f9fb;
+  color: #526273;
+}
+
+
+.logout-confirm-panel__confirm {
+  border: 1px solid #0b2d5c;
+  background: #0b2d5c;
+  color: #fff;
+}
+
+
 .legal-footer {
   position: absolute;
   bottom: 4px;
@@ -3277,6 +3910,73 @@ textarea {
   inset: 0;
   width: 100%;
   height: 100%;
+}
+
+
+.public-profile-badge {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 11px 7px 7px;
+  border: 1px solid rgba(11, 45, 92, 0.13);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.10);
+  backdrop-filter: blur(8px);
+  transform: translateX(-50%);
+}
+
+.public-profile-badge__avatar {
+  position: relative;
+  display: flex;
+  width: 31px;
+  height: 31px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #0b2d5c;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.public-profile-badge__avatar img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.public-profile-badge__avatar span {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+.public-profile-badge small,
+.public-profile-badge strong {
+  display: block;
+}
+
+.public-profile-badge small {
+  color: #87919d;
+  font-size: 8px;
+  line-height: 1.1;
+}
+
+.public-profile-badge strong {
+  margin-top: 2px;
+  color: #0b2d5c;
+  font-size: 11px;
+  line-height: 1.1;
 }
 
 

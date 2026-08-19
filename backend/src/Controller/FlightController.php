@@ -13,12 +13,14 @@ use PDO;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Throwable;
+use Transazja\MapaLotowApi\Security\AuthService;
 
 
 class FlightController
 {
     public function __construct(
-        private PDO $pdo
+        private PDO $pdo,
+        private AuthService $auth
     ) {
     }
 
@@ -28,23 +30,10 @@ class FlightController
         Response $response
     ): Response {
 
-        $queryParams = $request->getQueryParams();
+        $userId = $this->authenticatedUserId($response);
 
-
-        $userId = isset($queryParams['user_id'])
-            ? (int) $queryParams['user_id']
-            : 0;
-
-
-        if ($userId <= 0) {
-            return $this->json(
-                $response,
-                [
-                    'status' => 'error',
-                    'message' => 'Missing or invalid user_id',
-                ],
-                400
-            );
+        if ($userId instanceof Response) {
+            return $userId;
         }
 
 
@@ -199,6 +188,13 @@ class FlightController
         }
 
 
+        $userId = $this->authenticatedUserId($response);
+
+        if ($userId instanceof Response) {
+            return $userId;
+        }
+
+
         $stmt = $this->pdo->prepare(
             "
             SELECT
@@ -313,6 +309,7 @@ class FlightController
                 ON ac.id = f.aircraft_type_id
 
             WHERE f.id = :flight_id
+              AND f.user_id = :user_id
 
             LIMIT 1
             "
@@ -321,6 +318,7 @@ class FlightController
 
         $stmt->execute([
             'flight_id' => $flightId,
+            'user_id' => $userId,
         ]);
 
 
@@ -698,7 +696,12 @@ class FlightController
         }
 
 
-        $userId = (int) ($data['user_id'] ?? 0);
+        $userId = $this->authenticatedUserId($response);
+
+        if ($userId instanceof Response) {
+            return $userId;
+        }
+
         $departureAirportId = (int) ($data['departure_airport_id'] ?? 0);
         $arrivalAirportId = (int) ($data['arrival_airport_id'] ?? 0);
 
@@ -721,8 +724,7 @@ class FlightController
 
 
         if (
-            $userId <= 0
-            || $departureAirportId <= 0
+            $departureAirportId <= 0
             || $arrivalAirportId <= 0
         ) {
             return $this->json(
@@ -1113,12 +1115,15 @@ class FlightController
         }
 
 
-        $userId = (int) ($data['user_id'] ?? 0);
+        $userId = $this->authenticatedUserId($response);
+
+        if ($userId instanceof Response) {
+            return $userId;
+        }
 
 
         if (
-            $userId <= 0
-            || !$this->flightBelongsToUser(
+            !$this->flightBelongsToUser(
                 $flightId,
                 $userId
             )
@@ -1482,16 +1487,15 @@ class FlightController
             ? (int) $args['id']
             : 0;
 
-        $data = $request->getParsedBody();
+        $userId = $this->authenticatedUserId($response);
 
-        $userId = is_array($data)
-            ? (int) ($data['user_id'] ?? 0)
-            : 0;
+        if ($userId instanceof Response) {
+            return $userId;
+        }
 
 
         if (
             $flightId <= 0
-            || $userId <= 0
         ) {
             return $this->json(
                 $response,
@@ -2142,6 +2146,24 @@ class FlightController
 
         return $date !== false
             && $date->format('Y-m-d') === $value;
+    }
+
+
+    private function authenticatedUserId(
+        Response $response
+    ): int|Response {
+        try {
+            return $this->auth->requireUserId();
+        } catch (\RuntimeException $e) {
+            return $this->json(
+                $response,
+                [
+                    'status' => 'error',
+                    'message' => 'Musisz się zalogować.',
+                ],
+                401
+            );
+        }
     }
 
 
