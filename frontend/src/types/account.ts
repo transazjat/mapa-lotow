@@ -18,6 +18,7 @@ export interface AccountUser {
   share_url: string | null
   public_url: string | null
   public_slug: string | null
+  is_admin: boolean
 }
 
 

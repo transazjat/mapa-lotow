@@ -937,6 +937,7 @@ final class AuthController
                 ? $this->appUrl . '/profil/' . rawurlencode((string) $publicSlug)
                 : null,
             'public_slug' => $publicSlug,
+            'is_admin' => (bool) ($user['is_admin'] ?? false),
         ];
     }
 

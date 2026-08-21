@@ -26,6 +26,7 @@ const props = defineProps<{
   authenticated?: boolean
   userName?: string
   privacyMode?: 'private' | 'link' | 'public'
+  isAdmin?: boolean
 }>()
 
 
@@ -36,6 +37,7 @@ const emit = defineEmits<{
   flight: [flight: Flight]
   filteredFlights: [flights: Flight[]]
   statisticsAirports: []
+  statisticsRecords: []
   statisticsReport: [type: 'flights' | 'distance' | 'duration']
   statisticsSection: [type: 'airlines' | 'aircraft' | 'routes' | 'countries']
   aircraftFilterChanged: [key: string | null]
@@ -712,6 +714,11 @@ function openStatisticsSection(
             $event,
           )
         "
+        @records="
+          emit(
+            'statisticsRecords',
+          )
+        "
       />
 
       <section
@@ -830,6 +837,25 @@ function openStatisticsSection(
               <strong>Ustawienia konta</strong>
               <span>Profil, hasło i prywatność</span>
             </button>
+
+            <a
+              v-if="isAdmin"
+              href="/admin"
+              class="account-tool-card account-tool-card--admin"
+            >
+              <span
+                class="account-tool-card__icon"
+                aria-hidden="true"
+              >
+                <svg viewBox="0 0 24 24">
+                  <path d="M12 3l7 3v5c0 4.6-2.9 8.2-7 10-4.1-1.8-7-5.4-7-10V6l7-3z" />
+                  <path d="M9.5 12l1.7 1.7 3.7-4" />
+                </svg>
+              </span>
+
+              <strong>Administracja</strong>
+              <span>Zaplecze serwisu</span>
+            </a>
           </div>
         </template>
 
@@ -1198,6 +1224,44 @@ function openStatisticsSection(
 .account-tool-card--settings {
   grid-column: 1 / -1;
   min-height: 76px;
+}
+
+
+.account-tool-card--admin {
+  grid-column: 1 / -1;
+  display: grid;
+  min-height: 72px;
+  align-content: center;
+  justify-items: center;
+  gap: 4px;
+  padding: 10px 8px;
+  border: 1px solid #cfdbe6;
+  border-radius: 11px;
+  background: #eef4f9;
+  color: #4b5968;
+  text-align: center;
+  text-decoration: none;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.account-tool-card--admin:hover {
+  border-color: #9fb5ca;
+  background: #e5eef6;
+  transform: translateY(-1px);
+}
+
+.account-tool-card--admin strong {
+  color: #0b2d5c;
+  font-size: 11px;
+}
+
+.account-tool-card--admin > span:last-child {
+  color: #7c8793;
+  font-size: 11px;
+  line-height: 1.3;
 }
 
 

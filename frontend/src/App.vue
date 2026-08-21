@@ -25,9 +25,11 @@ import FlightDetailsPanel from './components/FlightDetailsPanel.vue'
 import AirportStatisticsPanel from './components/AirportStatisticsPanel.vue'
 import StatisticsMetricPanel from './components/StatisticsMetricPanel.vue'
 import StatisticsCategoryPanel from './components/StatisticsCategoryPanel.vue'
+import RecordsStatisticsPanel from './components/RecordsStatisticsPanel.vue'
 import AddFlightPanel from './components/AddFlightPanel.vue'
 import TripAdCard from './components/TripAdCard.vue'
 import AccountPanel from './components/AccountPanel.vue'
+import AdminPanel from './components/AdminPanel.vue'
 
 import {
   deleteFlight,
@@ -76,6 +78,369 @@ setWorkerUrl(
   workerUrl,
 )
 
+
+interface DraggableReportElement
+  extends HTMLElement {
+  __reportDragCleanup?:
+    () => void
+}
+
+
+const vDraggableReport = {
+  mounted(
+    element:
+      DraggableReportElement,
+  ): void {
+    const handle =
+      (
+        element.querySelector(
+          '.panel-header',
+        ) ??
+        element.querySelector(
+          'header',
+        )
+      ) as HTMLElement | null
+
+    if (!handle) {
+      return
+    }
+
+    handle.style.cursor =
+      'grab'
+
+    handle.style.userSelect =
+      'none'
+
+    handle.title =
+      handle.title ||
+      'Przeciągnij panel'
+
+    let activePointerId:
+      number | null =
+      null
+
+    let pointerOffsetX =
+      0
+
+    let pointerOffsetY =
+      0
+
+    const minimumVisibleHeader =
+      54
+
+    function clamp(
+      value:
+        number,
+
+      minimum:
+        number,
+
+      maximum:
+        number,
+    ): number {
+      return Math.min(
+        Math.max(
+          value,
+          minimum,
+        ),
+        maximum,
+      )
+    }
+
+
+    function fitPanelHeight(
+      top:
+        number,
+    ): void {
+      const available =
+        Math.max(
+          180,
+          window.innerHeight -
+            top -
+            8,
+        )
+
+      element.style.height =
+        `${available}px`
+
+      element.style.maxHeight =
+        `${available}px`
+    }
+
+
+    function handlePointerDown(
+      event:
+        PointerEvent,
+    ): void {
+      if (
+        event.button !==
+        0
+      ) {
+        return
+      }
+
+      const target =
+        event.target as
+          HTMLElement | null
+
+      if (
+        target?.closest(
+          'button, a, input, select, textarea, [role="button"]',
+        )
+      ) {
+        return
+      }
+
+      const rect =
+        element.getBoundingClientRect()
+
+      activePointerId =
+        event.pointerId
+
+      pointerOffsetX =
+        event.clientX -
+        rect.left
+
+      pointerOffsetY =
+        event.clientY -
+        rect.top
+
+      element.style.position =
+        'fixed'
+
+      element.style.left =
+        `${rect.left}px`
+
+      element.style.top =
+        `${rect.top}px`
+
+      element.style.right =
+        'auto'
+
+      element.style.bottom =
+        'auto'
+
+      element.style.margin =
+        '0'
+
+      element.style.zIndex =
+        '60'
+
+      handle.style.cursor =
+        'grabbing'
+
+      handle.setPointerCapture(
+        event.pointerId,
+      )
+
+      event.preventDefault()
+    }
+
+
+    function handlePointerMove(
+      event:
+        PointerEvent,
+    ): void {
+      if (
+        activePointerId !==
+        event.pointerId
+      ) {
+        return
+      }
+
+      const rect =
+        element.getBoundingClientRect()
+
+      const maxLeft =
+        Math.max(
+          8,
+          window.innerWidth -
+            rect.width -
+            8,
+        )
+
+      const maxTop =
+        Math.max(
+          8,
+          window.innerHeight -
+            minimumVisibleHeader,
+        )
+
+      const left =
+        clamp(
+          event.clientX -
+            pointerOffsetX,
+          8,
+          maxLeft,
+        )
+
+      const top =
+        clamp(
+          event.clientY -
+            pointerOffsetY,
+          8,
+          maxTop,
+        )
+
+      element.style.left =
+        `${left}px`
+
+      element.style.top =
+        `${top}px`
+
+      fitPanelHeight(
+        top,
+      )
+
+      event.preventDefault()
+    }
+
+
+    function finishDrag(
+      event:
+        PointerEvent,
+    ): void {
+      if (
+        activePointerId !==
+        event.pointerId
+      ) {
+        return
+      }
+
+      activePointerId =
+        null
+
+      handle.style.cursor =
+        'grab'
+
+      if (
+        handle.hasPointerCapture(
+          event.pointerId,
+        )
+      ) {
+        handle.releasePointerCapture(
+          event.pointerId,
+        )
+      }
+    }
+
+
+    function keepInsideViewport(): void {
+      if (
+        element.style.position !==
+        'fixed'
+      ) {
+        return
+      }
+
+      const rect =
+        element.getBoundingClientRect()
+
+      const maxLeft =
+        Math.max(
+          8,
+          window.innerWidth -
+            rect.width -
+            8,
+        )
+
+      const maxTop =
+        Math.max(
+          8,
+          window.innerHeight -
+            minimumVisibleHeader,
+        )
+
+      const left =
+        clamp(
+          rect.left,
+          8,
+          maxLeft,
+        )
+
+      const top =
+        clamp(
+          rect.top,
+          8,
+          maxTop,
+        )
+
+      element.style.left =
+        `${left}px`
+
+      element.style.top =
+        `${top}px`
+
+      fitPanelHeight(
+        top,
+      )
+    }
+
+
+    handle.addEventListener(
+      'pointerdown',
+      handlePointerDown,
+    )
+
+    handle.addEventListener(
+      'pointermove',
+      handlePointerMove,
+    )
+
+    handle.addEventListener(
+      'pointerup',
+      finishDrag,
+    )
+
+    handle.addEventListener(
+      'pointercancel',
+      finishDrag,
+    )
+
+    window.addEventListener(
+      'resize',
+      keepInsideViewport,
+    )
+
+    element.__reportDragCleanup =
+      () => {
+        handle.removeEventListener(
+          'pointerdown',
+          handlePointerDown,
+        )
+
+        handle.removeEventListener(
+          'pointermove',
+          handlePointerMove,
+        )
+
+        handle.removeEventListener(
+          'pointerup',
+          finishDrag,
+        )
+
+        handle.removeEventListener(
+          'pointercancel',
+          finishDrag,
+        )
+
+        window.removeEventListener(
+          'resize',
+          keepInsideViewport,
+        )
+      }
+  },
+
+
+  unmounted(
+    element:
+      DraggableReportElement,
+  ): void {
+    element
+      .__reportDragCleanup?.()
+  },
+}
+
 type AccountPanelMode =
   | 'login'
   | 'register'
@@ -121,6 +486,15 @@ const authenticated =
     () => currentUser.value !== null,
   )
 
+const adminRoute =
+  computed(
+    () =>
+      /^\/admin\/?$/i.test(
+        window.location.pathname,
+      ),
+  )
+
+
 const logoutConfirmOpen =
   ref(false)
 
@@ -159,6 +533,10 @@ Record<AccountPanelMode, string> = {
 const pageTitle =
   computed(
     () => {
+      if (adminRoute.value) {
+        return 'Administracja - Mapa Lotów'
+      }
+
       if (publicProfile.value) {
         return publicAccessMode.value ===
           'link'
@@ -320,6 +698,12 @@ const rightPanelKey =
         return `statistics-section:${statisticsSection.value}`
       }
 
+      if (
+        statisticsRecordsOpen.value
+      ) {
+        return 'statistics-records'
+      }
+
       return null
     },
   )
@@ -375,6 +759,9 @@ const statisticsSection =
   >(
     null,
   )
+
+const statisticsRecordsOpen =
+  ref(false)
 
 const routeReturnSection =
   ref<
@@ -914,6 +1301,9 @@ function changeTab(
 
     statisticsSection.value =
       null
+
+    statisticsRecordsOpen.value =
+      false
   }
 
   if (
@@ -964,6 +1354,9 @@ function closeStatisticsPanels(): void {
 
   statisticsSection.value =
     null
+
+  statisticsRecordsOpen.value =
+    false
 }
 
 function openAirportStatistics(): void {
@@ -1071,6 +1464,37 @@ function openStatisticsSection(
 function closeStatisticsSection(): void {
   statisticsSection.value =
     null
+}
+
+function openStatisticsRecords(): void {
+  addFlightOpen.value =
+    false
+
+  flightFormMode.value =
+    'create'
+
+  flightFormInitialFlight.value =
+    null
+
+  clearSelection()
+  closeStatisticsPanels()
+
+  routeReturnSection.value =
+    null
+
+  if (mapInstance) {
+    clearHighlightedRoute(
+      mapInstance,
+    )
+  }
+
+  statisticsRecordsOpen.value =
+    true
+}
+
+function closeStatisticsRecords(): void {
+  statisticsRecordsOpen.value =
+    false
 }
 
 /*
@@ -3225,6 +3649,11 @@ onBeforeUnmount(
         fullscreenMapMode,
     }"
   >
+    <AdminPanel
+      v-if="adminRoute"
+      :user="currentUser"
+    />
+
     <div
       ref="mapContainer"
       class="map"
@@ -3241,6 +3670,7 @@ onBeforeUnmount(
       :authenticated="authenticated"
       :user-name="currentUser?.nick ?? ''"
       :privacy-mode="currentUser?.privacy_mode ?? 'private'"
+      :is-admin="currentUser?.is_admin ?? false"
       @toggle="toggleSidebar"
       @tab="changeTab"
       @scope="changeScope"
@@ -3250,6 +3680,7 @@ onBeforeUnmount(
       @statistics-airports="openAirportStatistics"
       @statistics-report="openStatisticsReport"
       @statistics-section="openStatisticsSection"
+      @statistics-records="openStatisticsRecords"
       @add-flight="openAddFlight"
       @auth-choice="openAuthChoice"
       @account-action="openAccountPanel"
@@ -3593,6 +4024,8 @@ onBeforeUnmount(
         airportStatisticsOpen &&
         !fullscreenMapMode
       "
+      key="statistics-airports"
+      v-draggable-report
       v-show="!rightPanelCollapsed"
       :flights="visibleFlights"
       @airport="openAirportFromStatistics"
@@ -3604,6 +4037,8 @@ onBeforeUnmount(
         statisticsReport &&
         !fullscreenMapMode
       "
+      :key="`statistics-report:${statisticsReport}`"
+      v-draggable-report
       v-show="!rightPanelCollapsed"
       :flights="visibleFlights"
       :report-type="statisticsReport"
@@ -3615,12 +4050,26 @@ onBeforeUnmount(
         statisticsSection &&
         !fullscreenMapMode
       "
+      :key="`statistics-section:${statisticsSection}`"
+      v-draggable-report
       v-show="!rightPanelCollapsed"
       :flights="visibleFlights"
       :section="statisticsSection"
       @aircraft="openAircraftFlightsFromStatistics"
       @route="openRouteFromStatistics"
       @close="closeStatisticsSection"
+    />
+
+    <RecordsStatisticsPanel
+      v-if="
+        statisticsRecordsOpen &&
+        !fullscreenMapMode
+      "
+      key="statistics-records"
+      v-draggable-report
+      v-show="!rightPanelCollapsed"
+      :flights="visibleFlights"
+      @close="closeStatisticsRecords"
     />
 
     <footer

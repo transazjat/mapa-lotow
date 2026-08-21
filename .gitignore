@@ -41,3 +41,9 @@ venv/
 *.pem
 
 _zrodla/
+
+_tools/migracja_mapy_lotow/backup/*
+_tools/migracja_mapy_lotow/reports/*
+_tools/migracja_mapy_lotow/temp/*
+_tools/migracja_mapy_lotow/__pycache__/
+_tools/migracja_mapy_lotow/**/*.pyc

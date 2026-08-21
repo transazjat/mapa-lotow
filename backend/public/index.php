@@ -7,6 +7,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
 use Transazja\MapaLotowApi\Controller\AccountExportController;
+use Transazja\MapaLotowApi\Controller\AdminController;
 use Transazja\MapaLotowApi\Controller\AuthController;
 use Transazja\MapaLotowApi\Controller\FlightController;
 use Transazja\MapaLotowApi\Controller\PublicProfileController;
@@ -72,6 +73,7 @@ $mailer = new SmtpMailer(
 $authService = new AuthService($pdo);
 $authController = new AuthController($pdo, $authService, $mailer, $appUrl);
 $accountExportController = new AccountExportController($pdo, $authService);
+$adminController = new AdminController($pdo, $authService);
 $flightController = new FlightController($pdo, $authService);
 $publicProfileController = new PublicProfileController($pdo, $appUrl);
 $transAzjaOfferController = new TransAzjaOfferController();
@@ -193,6 +195,14 @@ $app->get(
 );
 
 $app->get('/api/transazja/offers', [$transAzjaOfferController, 'index']);
+
+$app->get('/api/admin/dashboard', [$adminController, 'dashboard']);
+$app->get('/api/admin/users', [$adminController, 'users']);
+$app->get('/api/admin/users/{id:[0-9]+}', [$adminController, 'user']);
+$app->put('/api/admin/users/{id:[0-9]+}', [$adminController, 'updateUser']);
+$app->get('/api/admin/flights', [$adminController, 'flights']);
+$app->get('/api/admin/flights/{id:[0-9]+}', [$adminController, 'flight']);
+$app->delete('/api/admin/flights/{id:[0-9]+}', [$adminController, 'deleteFlight']);
 
 $app->get('/api/flights', [$flightController, 'index']);
 $app->post('/api/flights', [$flightController, 'create']);

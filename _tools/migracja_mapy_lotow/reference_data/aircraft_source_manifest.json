@@ -1,0 +1,10 @@
+{
+  "source": "ICAO Doc 8643 - Aircraft Type Designators",
+  "source_url": "https://www.icao.int/operational-safety/doc-8643-aircraft-type-designators",
+  "search_url": "https://www.icao.int/operational-safety/doc-8643-aircraft-type-designators/search",
+  "verified_on": "2026-08-21",
+  "scope": "Curated hybrid list of passenger and historically used aircraft types",
+  "legacy_records_normalized": 86,
+  "detailed_records_added": 60,
+  "notes": "Existing IDs are preserved. New fixed IDs are maintained by this migration package. Generic legacy records remain available for historical flights."
+}

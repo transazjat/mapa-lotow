@@ -1,0 +1,12 @@
+{
+  "airports": {
+    "source": "OurAirports",
+    "source_url": "https://ourairports.com/data/airports.csv",
+    "snapshot_date": "2026-08-21",
+    "license": "Public domain",
+    "file": "ourairports_airports_2026-08-21.csv",
+    "sha256": "2a5f05d4e2e9c6190ef6c6d28ff9f032d06d6e15c8d1d03d429d0cb72dda5140",
+    "selection_policy": "Existing airports are matched against the full snapshot. New records are active large or medium airports, airports with scheduled service, or airports with an IATA code.",
+    "new_id_policy": "1000000 + OurAirports id"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "sources": [
+    {
+      "name": "IATA Airline and Airport Codes Search",
+      "url": "https://www.iata.org/en/publications/directories/code-search/"
+    },
+    {
+      "name": "ICAO Doc 8585 - Designators for Aircraft Operating Agencies",
+      "url": "https://www.icao.int/operational-safety/Designators-and-indicators"
+    }
+  ],
+  "verified_on": "2026-08-21",
+  "scope": "Conservative normalization of used airlines and curated modern passenger additions",
+  "principles": [
+    "Legacy IDs are preserved",
+    "Codes alone never cause an automatic merge",
+    "Historical operators remain as inactive records",
+    "Only confirmed duplicate records have flight references moved"
+  ]
+}

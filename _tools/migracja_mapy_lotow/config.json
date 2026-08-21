@@ -1,0 +1,23 @@
+{
+  "host": "127.0.0.1",
+  "port": 3306,
+  "user": "root",
+  "password_env": "MAPA_LOTOW_DB_PASSWORD",
+  "ask_for_password": true,
+  "mysql_executable": "",
+  "mysqldump_executable": "",
+  "source_db": "transazja",
+  "candidate_db": "mapa_lotow_candidate",
+  "final_db": "mapa_lotow",
+  "airport_reference": {
+    "enabled": true,
+    "snapshot_file": "ourairports_airports_2026-08-21.csv",
+    "snapshot_date": "2026-08-21"
+  },
+  "legacy_files": [
+    "01_mapalotow_struktura_DB.sql",
+    "02_mapalotow_skrypt_migrujący_dane.sql",
+    "03_mapalotow_countries_mapping.sql",
+    "04_mapalotow_users_update.sql"
+  ]
+}

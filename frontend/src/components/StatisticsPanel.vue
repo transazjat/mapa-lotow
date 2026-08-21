@@ -1,96 +1,223 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import type { Flight } from '../types/flight'
+import {
+  computed,
+} from 'vue'
+
+import type {
+  Flight,
+} from '../types/flight'
+
 
 const props = defineProps<{
   flights: Flight[]
 }>()
 
+
 const emit = defineEmits<{
   airports: []
-  report: [type: 'flights' | 'distance' | 'duration']
-  section: [type: 'airlines' | 'aircraft' | 'routes' | 'countries']
+  report: [
+    type:
+      | 'flights'
+      | 'distance'
+      | 'duration',
+  ]
+  section: [
+    type:
+      | 'airlines'
+      | 'aircraft'
+      | 'routes'
+      | 'countries',
+  ]
+  records: []
 }>()
 
-const totalDistance = computed(() =>
-  props.flights.reduce((sum, flight) => sum + (flight.distance_km ?? 0), 0),
-)
 
-const totalDuration = computed(() =>
-  props.flights.reduce((sum, flight) => sum + (flight.duration_seconds ?? 0), 0),
-)
-
-const airports = computed(() => {
-  const ids = new Set<number>()
-
-  for (const flight of props.flights) {
-    ids.add(flight.departure_airport_id)
-    ids.add(flight.arrival_airport_id)
-  }
-
-  return ids.size
-})
-
-const countries = computed(() => {
-  const keys = new Set<string>()
-
-  for (const flight of props.flights) {
-    if (flight.departure_country_code) {
-      keys.add(flight.departure_country_code.toUpperCase())
-    } else if (flight.departure_country) {
-      keys.add(flight.departure_country)
-    }
-
-    if (flight.arrival_country_code) {
-      keys.add(flight.arrival_country_code.toUpperCase())
-    } else if (flight.arrival_country) {
-      keys.add(flight.arrival_country)
-    }
-  }
-
-  return keys.size
-})
-
-const airlines = computed(
-  () =>
-    new Set(
-      props.flights
-        .map((flight) => flight.airline_id)
-        .filter((value): value is number => value !== null),
-    ).size,
-)
-
-const aircraft = computed(
-  () =>
-    new Set(
-      props.flights
-        .map((flight) => flight.aircraft_type_id)
-        .filter((value): value is number => value !== null),
-    ).size,
-)
-
-const routes = computed(
-  () =>
-    new Set(
-      props.flights.map(
-        (flight) =>
-          `${flight.departure_airport_id}>${flight.arrival_airport_id}`,
+const totalDistance =
+  computed(
+    () =>
+      props.flights.reduce(
+        (sum, flight) =>
+          sum +
+          (
+            flight.distance_km ??
+            0
+          ),
+        0,
       ),
-    ).size,
-)
+  )
 
-function formatNumber(value: number): string {
-  return new Intl.NumberFormat(undefined).format(value)
+
+const totalDuration =
+  computed(
+    () =>
+      props.flights.reduce(
+        (sum, flight) =>
+          sum +
+          (
+            flight.duration_seconds ??
+            0
+          ),
+        0,
+      ),
+  )
+
+
+const airports =
+  computed(
+    () => {
+      const ids =
+        new Set<number>()
+
+      for (
+        const flight
+        of props.flights
+      ) {
+        ids.add(
+          flight.departure_airport_id,
+        )
+
+        ids.add(
+          flight.arrival_airport_id,
+        )
+      }
+
+      return ids.size
+    },
+  )
+
+
+const countries =
+  computed(
+    () => {
+      const keys =
+        new Set<string>()
+
+      for (
+        const flight
+        of props.flights
+      ) {
+        if (
+          flight.departure_country_code
+        ) {
+          keys.add(
+            flight.departure_country_code
+              .toUpperCase(),
+          )
+        } else if (
+          flight.departure_country
+        ) {
+          keys.add(
+            flight.departure_country,
+          )
+        }
+
+        if (
+          flight.arrival_country_code
+        ) {
+          keys.add(
+            flight.arrival_country_code
+              .toUpperCase(),
+          )
+        } else if (
+          flight.arrival_country
+        ) {
+          keys.add(
+            flight.arrival_country,
+          )
+        }
+      }
+
+      return keys.size
+    },
+  )
+
+
+const airlines =
+  computed(
+    () =>
+      new Set(
+        props.flights
+          .map(
+            (flight) =>
+              flight.airline_id,
+          )
+          .filter(
+            (
+              value,
+            ): value is number =>
+              value !== null,
+          ),
+      ).size,
+  )
+
+
+const aircraft =
+  computed(
+    () =>
+      new Set(
+        props.flights
+          .map(
+            (flight) =>
+              flight.aircraft_type_id,
+          )
+          .filter(
+            (
+              value,
+            ): value is number =>
+              value !== null,
+          ),
+      ).size,
+  )
+
+
+const routes =
+  computed(
+    () =>
+      new Set(
+        props.flights.map(
+          (flight) =>
+            `${flight.departure_airport_id}>${flight.arrival_airport_id}`,
+        ),
+      ).size,
+  )
+
+
+function formatNumber(
+  value:
+    number,
+): string {
+  return new Intl.NumberFormat(
+    undefined,
+  ).format(
+    value,
+  )
 }
 
-function formatDuration(seconds: number): string {
-  const totalMinutes = Math.floor(seconds / 60)
-  const hours = Math.floor(totalMinutes / 60)
-  const minutes = totalMinutes % 60
+
+function formatDuration(
+  seconds:
+    number,
+): string {
+  const totalMinutes =
+    Math.floor(
+      seconds /
+      60,
+    )
+
+  const hours =
+    Math.floor(
+      totalMinutes /
+      60,
+    )
+
+  const minutes =
+    totalMinutes %
+    60
 
   return `${formatNumber(hours)} h ${minutes} min`
 }
 </script>
+
 
 <template>
   <section class="statistics-panel">
@@ -98,15 +225,28 @@ function formatDuration(seconds: number): string {
       <button
         type="button"
         class="primary-card"
-        @click="emit('report', 'flights')"
+        @click="
+          emit(
+            'report',
+            'flights',
+          )
+        "
       >
         <div class="primary-card__content">
-          <strong>{{ formatNumber(flights.length) }}</strong>
-          <span>lotów</span>
+          <strong>
+            {{ formatNumber(flights.length) }}
+          </strong>
+
+          <span>
+            lotów
+          </span>
         </div>
 
         <div class="details-button">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
             <path d="M9 5l7 7-7 7" />
           </svg>
         </div>
@@ -115,15 +255,28 @@ function formatDuration(seconds: number): string {
       <button
         type="button"
         class="primary-card"
-        @click="emit('report', 'distance')"
+        @click="
+          emit(
+            'report',
+            'distance',
+          )
+        "
       >
         <div class="primary-card__content">
-          <strong>{{ formatNumber(totalDistance) }}</strong>
-          <span>kilometrów</span>
+          <strong>
+            {{ formatNumber(totalDistance) }}
+          </strong>
+
+          <span>
+            kilometrów
+          </span>
         </div>
 
         <div class="details-button">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
             <path d="M9 5l7 7-7 7" />
           </svg>
         </div>
@@ -132,15 +285,28 @@ function formatDuration(seconds: number): string {
       <button
         type="button"
         class="primary-card"
-        @click="emit('report', 'duration')"
+        @click="
+          emit(
+            'report',
+            'duration',
+          )
+        "
       >
         <div class="primary-card__content">
-          <strong>{{ formatDuration(totalDuration) }}</strong>
-          <span>w powietrzu</span>
+          <strong>
+            {{ formatDuration(totalDuration) }}
+          </strong>
+
+          <span>
+            w powietrzu
+          </span>
         </div>
 
         <div class="details-button">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
             <path d="M9 5l7 7-7 7" />
           </svg>
         </div>
@@ -153,53 +319,142 @@ function formatDuration(seconds: number): string {
         class="statistics-menu-card"
         @click="emit('airports')"
       >
-        <div class="statistics-menu-card__value">{{ airports }}</div>
-        <div class="statistics-menu-card__label">lotnisk</div>
-        <div class="statistics-menu-card__more">Szczegóły →</div>
+        <div class="statistics-menu-card__value">
+          {{ airports }}
+        </div>
+
+        <div class="statistics-menu-card__label">
+          lotnisk
+        </div>
+
+        <div class="statistics-menu-card__more">
+          Szczegóły →
+        </div>
       </button>
 
       <button
         type="button"
         class="statistics-menu-card"
-        @click="emit('section', 'countries')"
+        @click="
+          emit(
+            'section',
+            'countries',
+          )
+        "
       >
-        <div class="statistics-menu-card__value">{{ countries }}</div>
-        <div class="statistics-menu-card__label">państw</div>
-        <div class="statistics-menu-card__more">Szczegóły →</div>
+        <div class="statistics-menu-card__value">
+          {{ countries }}
+        </div>
+
+        <div class="statistics-menu-card__label">
+          państw
+        </div>
+
+        <div class="statistics-menu-card__more">
+          Szczegóły →
+        </div>
       </button>
 
       <button
         type="button"
         class="statistics-menu-card"
-        @click="emit('section', 'airlines')"
+        @click="
+          emit(
+            'section',
+            'airlines',
+          )
+        "
       >
-        <div class="statistics-menu-card__value">{{ airlines }}</div>
-        <div class="statistics-menu-card__label">linii lotniczych</div>
-        <div class="statistics-menu-card__more">Szczegóły →</div>
+        <div class="statistics-menu-card__value">
+          {{ airlines }}
+        </div>
+
+        <div class="statistics-menu-card__label">
+          linii lotniczych
+        </div>
+
+        <div class="statistics-menu-card__more">
+          Szczegóły →
+        </div>
       </button>
 
       <button
         type="button"
         class="statistics-menu-card"
-        @click="emit('section', 'aircraft')"
+        @click="
+          emit(
+            'section',
+            'aircraft',
+          )
+        "
       >
-        <div class="statistics-menu-card__value">{{ aircraft }}</div>
-        <div class="statistics-menu-card__label">typów samolotów</div>
-        <div class="statistics-menu-card__more">Szczegóły →</div>
+        <div class="statistics-menu-card__value">
+          {{ aircraft }}
+        </div>
+
+        <div class="statistics-menu-card__label">
+          typów samolotów
+        </div>
+
+        <div class="statistics-menu-card__more">
+          Szczegóły →
+        </div>
       </button>
 
       <button
         type="button"
         class="statistics-menu-card"
-        @click="emit('section', 'routes')"
+        @click="
+          emit(
+            'section',
+            'routes',
+          )
+        "
       >
-        <div class="statistics-menu-card__value">{{ routes }}</div>
-        <div class="statistics-menu-card__label">tras</div>
-        <div class="statistics-menu-card__more">Szczegóły →</div>
+        <div class="statistics-menu-card__value">
+          {{ routes }}
+        </div>
+
+        <div class="statistics-menu-card__label">
+          tras
+        </div>
+
+        <div class="statistics-menu-card__more">
+          Szczegóły →
+        </div>
+      </button>
+
+      <button
+        type="button"
+        class="statistics-menu-card"
+        @click="emit('records')"
+      >
+        <div class="statistics-menu-card__icon">
+          <svg
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <path d="M8 4h8v3a4 4 0 0 1-8 0V4z" />
+            <path d="M9 16h6" />
+            <path d="M12 11v5" />
+            <path d="M7 6H4v1a4 4 0 0 0 4 4" />
+            <path d="M17 6h3v1a4 4 0 0 1-4 4" />
+            <path d="M8 20h8" />
+          </svg>
+        </div>
+
+        <div class="statistics-menu-card__label">
+          rekordy
+        </div>
+
+        <div class="statistics-menu-card__more">
+          Szczegóły →
+        </div>
       </button>
     </section>
   </section>
 </template>
+
 
 <style scoped>
 .statistics-panel {
@@ -215,7 +470,9 @@ function formatDuration(seconds: number): string {
   display: grid;
   width: 100%;
   min-height: 82px;
-  grid-template-columns: 1fr 46px;
+  grid-template-columns:
+    1fr
+    46px;
   align-items: stretch;
   padding: 7px;
   border: 1px solid #e1e4e8;
@@ -234,7 +491,9 @@ function formatDuration(seconds: number): string {
   border-color: #d6dae0;
   background: #eef0f3;
   transform: translateY(-1px);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 3px 10px
+    rgba(0, 0, 0, 0.04);
 }
 
 .primary-card__content {
@@ -260,10 +519,10 @@ function formatDuration(seconds: number): string {
 
 .details-button {
   display: flex;
-  align-items: center;
-  justify-content: center;
   width: 100%;
   min-height: 66px;
+  align-items: center;
+  justify-content: center;
   border: 1px solid #dde1e6;
   border-radius: 9px;
   background: #f7f8fa;
@@ -293,7 +552,9 @@ function formatDuration(seconds: number): string {
 
 .statistics-menu {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns:
+    1fr
+    1fr;
   gap: 7px;
   margin-top: 8px;
 }
@@ -307,9 +568,15 @@ function formatDuration(seconds: number): string {
   padding: 9px 8px;
   border: 1px solid #d9dde3;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.9);
-  text-align: center;
+  background:
+    rgba(
+      255,
+      255,
+      255,
+      0.9
+    );
   cursor: pointer;
+  text-align: center;
   transition:
     background 0.15s ease,
     border-color 0.15s ease,
@@ -321,16 +588,35 @@ function formatDuration(seconds: number): string {
   border-color: #cfd5dc;
   background: #fafbfc;
   transform: translateY(-1px);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 3px 10px
+    rgba(0, 0, 0, 0.04);
 }
-
-
 
 .statistics-menu-card__value {
   color: #969eaa;
   font-size: 24px;
   font-weight: 700;
   line-height: 1;
+}
+
+.statistics-menu-card__icon {
+  display: flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  color: #969eaa;
+}
+
+.statistics-menu-card__icon svg {
+  width: 27px;
+  height: 27px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.55;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .statistics-menu-card__label {
@@ -345,4 +631,5 @@ function formatDuration(seconds: number): string {
   font-size: 11px;
   font-weight: 650;
 }
+
 </style>

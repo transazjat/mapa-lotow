@@ -1,0 +1,51 @@
+Mapa Lotow - procedura migracyjna
+Wersja pakietu: 3.4
+Data: 2026-08-21
+
+Zmiany wzgledem wersji 2:
+- wersjonowana migawka lotnisk OurAirports z 2026-08-21,
+- aktualizacja istniejacych lotnisk bez zmiany ich ID,
+- dodawanie aktualnych lotnisk pasazerskich z deterministycznymi ID,
+- tabela powiazan z rekordami zrodla i raport konfliktow,
+- korekta wspolrzednych lotnisk 4303, 6473 i 7537,
+- korekta lotu 12880: przylot 12:50, numer lotu NULL,
+- ponowne wyznaczenie stref IANA po aktualizacji lotnisk.
+
+Poprawka 3.1:
+- blokada wielokrotnego przypisania rekordu OurAirports do kilku lotnisk,
+- dopasowanie tylko po kodach jednoznacznych rowniez w starej bazie,
+- zapis komunikatow z airport_reference_update.sql do glownego logu BUILD.
+
+Zmiany w wersji 3.2:
+- rozstrzygniecie 22 uzywanych konfliktow lotnisk na podstawie eksportu ml_airports.csv,
+- przepiecie lotow do aktualnych lotnisk z uwzglednieniem dat otwarcia i migracji,
+- zachowanie historycznych portow jako nieaktywnych rekordow zamiast ich usuwania,
+- pozostawienie niejednoznacznego przypadku STU/SBSC do recznej decyzji,
+- osobna tabela audytowa ml_airport_resolution_log i sekcja raportu JSON.
+
+Zmiany w wersji 3.3:
+- korekta lotniska 2614 na Santa Cruz Air Force Base, IATA SNZ, ICAO SBSC,
+- powiazanie lotniska 2614 z rekordem OurAirports 5969,
+- normalizacja 86 historycznych typow statkow powietrznych bez zmiany ich ID,
+- uzupelnienie producenta, rodziny, modelu, wariantu i kodu ICAO,
+- dodanie 60 szczegolowych wariantow wspolczesnych i historycznych,
+- zachowanie ogolnych typow legacy dla istniejacych lotow,
+- diagnostyczny raport historycznie niemozliwych dat przypisania typu.
+
+Zmiany w wersji 3.4:
+- konserwatywna normalizacja najwazniejszych uzywanych linii lotniczych,
+- poprawa m.in. Enter Air, Smartwings, easyJet Switzerland i wspolczesnych nazw,
+- scalenie 4 potwierdzonych duplikatow z przepieciem odwolania lotow,
+- zachowanie odrebnych operatorow historycznych i spolek zaleznych,
+- dodanie 23 wspolczesnych linii pasazerskich z trwalymi ID 3000001+,
+- tabela audytowa ml_airline_resolution_log i raport airline_reference_update,
+- usuniecie przestarzalej skladni MySQL VALUES() z aktualizacji samolotow.
+
+Zmiany wprowadzone w wersji 2:
+- automatyczne wyznaczanie timezone_name dla wszystkich lotnisk,
+- obowiazkowa kontrola lotnisk bez strefy IANA,
+- diagnostyczne porownanie czasow lotow dla calej bazy,
+- osobne podsumowanie czasow dla uzytkownika 75,
+- raport ujemnych czasow i rozkladu roznic,
+- instalator wymaganych bibliotek Python,
+- zachowanie czterech historycznych plikow SQL bez zmian.
