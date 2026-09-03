@@ -840,7 +840,7 @@ function openStatisticsSection(
 
             <a
               v-if="isAdmin"
-              href="/admin"
+              href="/runway"
               class="account-tool-card account-tool-card--admin"
             >
               <span

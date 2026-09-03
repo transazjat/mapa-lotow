@@ -55,6 +55,7 @@ import {
 
 import {
   filterFlightsByScope,
+  isPlannedFlight,
 } from './utils/flightScope'
 
 import type {
@@ -119,69 +120,68 @@ const vDraggableReport = {
       number | null =
       null
 
-    let pointerOffsetX =
-      0
+    let pointerOffsetX = 0
+    let pointerOffsetY = 0
+    let originalHeight = 0
+    let originalMaxHeight = ''
+    let collapseOffsetX = 0
+    let collapseOffsetY = 0
 
-    let pointerOffsetY =
-      0
+    const minimumVisibleHeader = 54
 
-    const minimumVisibleHeader =
-      54
+    const collapseButton =
+      document.querySelector<HTMLElement>(
+        '.right-panel-collapse-button',
+      )
 
     function clamp(
-      value:
-        number,
-
-      minimum:
-        number,
-
-      maximum:
-        number,
+      value: number,
+      minimum: number,
+      maximum: number,
     ): number {
       return Math.min(
-        Math.max(
-          value,
-          minimum,
-        ),
+        Math.max(value, minimum),
         maximum,
       )
     }
 
-
-    function fitPanelHeight(
-      top:
-        number,
+    function placeCollapseButton(
+      left: number,
+      top: number,
     ): void {
-      const available =
-        Math.max(
-          180,
-          window.innerHeight -
-            top -
-            8,
+      if (!collapseButton) {
+        return
+      }
+
+      if (
+        collapseButton.classList.contains(
+          'right-panel-collapse-button--collapsed',
         )
+      ) {
+        collapseButton.style.position = ''
+        collapseButton.style.left = ''
+        collapseButton.style.top = ''
+        collapseButton.style.right = ''
+        return
+      }
 
-      element.style.height =
-        `${available}px`
-
-      element.style.maxHeight =
-        `${available}px`
+      collapseButton.style.position = 'fixed'
+      collapseButton.style.left =
+        `${left + collapseOffsetX}px`
+      collapseButton.style.top =
+        `${top + collapseOffsetY}px`
+      collapseButton.style.right = 'auto'
     }
 
-
     function handlePointerDown(
-      event:
-        PointerEvent,
+      event: PointerEvent,
     ): void {
-      if (
-        event.button !==
-        0
-      ) {
+      if (event.button !== 0) {
         return
       }
 
       const target =
-        event.target as
-          HTMLElement | null
+        event.target as HTMLElement | null
 
       if (
         target?.closest(
@@ -198,33 +198,47 @@ const vDraggableReport = {
         event.pointerId
 
       pointerOffsetX =
-        event.clientX -
-        rect.left
+        event.clientX - rect.left
 
       pointerOffsetY =
-        event.clientY -
-        rect.top
+        event.clientY - rect.top
 
-      element.style.position =
-        'fixed'
+      /*
+       * Zachowujemy dokładnie wysokość, jaką panel miał przed
+       * rozpoczęciem przeciągania. Obejmuje to ograniczenie wynikające
+       * z reklamy TransAzji na dole ekranu. Przesuwanie zmienia wyłącznie
+       * pozycję panelu - nie jego rozmiar.
+       */
+      originalHeight = rect.height
+      originalMaxHeight =
+        element.style.maxHeight
 
-      element.style.left =
-        `${rect.left}px`
+      element.style.position = 'fixed'
+      element.style.left = `${rect.left}px`
+      element.style.top = `${rect.top}px`
+      element.style.right = 'auto'
+      element.style.bottom = 'auto'
+      element.style.margin = '0'
+      element.style.height =
+        `${originalHeight}px`
+      element.style.maxHeight =
+        `${originalHeight}px`
+      element.style.zIndex = '60'
 
-      element.style.top =
-        `${rect.top}px`
+      if (collapseButton) {
+        const buttonRect =
+          collapseButton.getBoundingClientRect()
 
-      element.style.right =
-        'auto'
+        collapseOffsetX =
+          buttonRect.left - rect.left
+        collapseOffsetY =
+          buttonRect.top - rect.top
 
-      element.style.bottom =
-        'auto'
-
-      element.style.margin =
-        '0'
-
-      element.style.zIndex =
-        '60'
+        placeCollapseButton(
+          rect.left,
+          rect.top,
+        )
+      }
 
       handle.style.cursor =
         'grabbing'
@@ -236,10 +250,8 @@ const vDraggableReport = {
       event.preventDefault()
     }
 
-
     function handlePointerMove(
-      event:
-        PointerEvent,
+      event: PointerEvent,
     ): void {
       if (
         activePointerId !==
@@ -284,21 +296,19 @@ const vDraggableReport = {
 
       element.style.left =
         `${left}px`
-
       element.style.top =
         `${top}px`
 
-      fitPanelHeight(
+      placeCollapseButton(
+        left,
         top,
       )
 
       event.preventDefault()
     }
 
-
     function finishDrag(
-      event:
-        PointerEvent,
+      event: PointerEvent,
     ): void {
       if (
         activePointerId !==
@@ -307,11 +317,8 @@ const vDraggableReport = {
         return
       }
 
-      activePointerId =
-        null
-
-      handle.style.cursor =
-        'grab'
+      activePointerId = null
+      handle.style.cursor = 'grab'
 
       if (
         handle.hasPointerCapture(
@@ -323,7 +330,6 @@ const vDraggableReport = {
         )
       }
     }
-
 
     function keepInsideViewport(): void {
       if (
@@ -352,54 +358,74 @@ const vDraggableReport = {
         )
 
       const left =
-        clamp(
-          rect.left,
-          8,
-          maxLeft,
-        )
-
+        clamp(rect.left, 8, maxLeft)
       const top =
-        clamp(
-          rect.top,
-          8,
-          maxTop,
-        )
+        clamp(rect.top, 8, maxTop)
 
-      element.style.left =
-        `${left}px`
-
-      element.style.top =
-        `${top}px`
-
-      fitPanelHeight(
-        top,
-      )
+      element.style.left = `${left}px`
+      element.style.top = `${top}px`
+      placeCollapseButton(left, top)
     }
 
+    function syncCollapseAfterClick(): void {
+      window.setTimeout(
+        () => {
+          if (!collapseButton) {
+            return
+          }
+
+          if (
+            collapseButton.classList.contains(
+              'right-panel-collapse-button--collapsed',
+            )
+          ) {
+            collapseButton.style.position = ''
+            collapseButton.style.left = ''
+            collapseButton.style.top = ''
+            collapseButton.style.right = ''
+            return
+          }
+
+          if (
+            element.style.position ===
+            'fixed'
+          ) {
+            const rect =
+              element.getBoundingClientRect()
+
+            placeCollapseButton(
+              rect.left,
+              rect.top,
+            )
+          }
+        },
+        0,
+      )
+    }
 
     handle.addEventListener(
       'pointerdown',
       handlePointerDown,
     )
-
     handle.addEventListener(
       'pointermove',
       handlePointerMove,
     )
-
     handle.addEventListener(
       'pointerup',
       finishDrag,
     )
-
     handle.addEventListener(
       'pointercancel',
       finishDrag,
     )
-
     window.addEventListener(
       'resize',
       keepInsideViewport,
+    )
+    collapseButton?.addEventListener(
+      'click',
+      syncCollapseAfterClick,
     )
 
     element.__reportDragCleanup =
@@ -408,29 +434,40 @@ const vDraggableReport = {
           'pointerdown',
           handlePointerDown,
         )
-
         handle.removeEventListener(
           'pointermove',
           handlePointerMove,
         )
-
         handle.removeEventListener(
           'pointerup',
           finishDrag,
         )
-
         handle.removeEventListener(
           'pointercancel',
           finishDrag,
         )
-
         window.removeEventListener(
           'resize',
           keepInsideViewport,
         )
+        collapseButton?.removeEventListener(
+          'click',
+          syncCollapseAfterClick,
+        )
+
+        if (collapseButton) {
+          collapseButton.style.position = ''
+          collapseButton.style.left = ''
+          collapseButton.style.top = ''
+          collapseButton.style.right = ''
+        }
+
+        /* Nowy raport ma znów korzystać z normalnego układu po prawej. */
+        element.style.height = ''
+        element.style.maxHeight =
+          originalMaxHeight
       }
   },
-
 
   unmounted(
     element:
@@ -489,10 +526,15 @@ const authenticated =
 const adminRoute =
   computed(
     () =>
-      /^\/admin\/?$/i.test(
+      /^\/runway\/?$/i.test(
         window.location.pathname,
       ),
   )
+
+
+function closeAdminPanel(): void {
+  window.location.href = '/'
+}
 
 
 const logoutConfirmOpen =
@@ -818,10 +860,133 @@ const visibleFlights =
       ),
   )
 
+const nextFlightBannerDismissed =
+  ref(false)
+
+
+function dateOnlyUtc(
+  value: string | null | undefined,
+): number | null {
+  if (!value) {
+    return null
+  }
+
+  const match =
+    /^(\d{4})-(\d{2})-(\d{2})$/.exec(
+      value,
+    )
+
+  if (!match) {
+    return null
+  }
+
+  return Date.UTC(
+    Number(match[1]),
+    Number(match[2]) - 1,
+    Number(match[3]),
+  )
+}
+
+
+const nearestPlannedFlight =
+  computed<Flight | null>(
+    () => {
+      const planned =
+        allFlights.value
+          .filter(
+            (flight) =>
+              isPlannedFlight(
+                flight,
+              ),
+          )
+          .sort(
+            (a, b) =>
+              `${a.departure_date ?? ''} ${a.departure_time ?? ''}`
+                .localeCompare(
+                  `${b.departure_date ?? ''} ${b.departure_time ?? ''}`,
+                ),
+          )
+
+      return planned[0] ??
+        null
+    },
+  )
+
+
+const nearestPlannedFlightCountdown =
+  computed(
+    () => {
+      const target =
+        dateOnlyUtc(
+          nearestPlannedFlight.value
+            ?.departure_date,
+        )
+
+      if (target === null) {
+        return ''
+      }
+
+      const now =
+        new Date()
+
+      const today =
+        Date.UTC(
+          now.getFullYear(),
+          now.getMonth(),
+          now.getDate(),
+        )
+
+      const days =
+        Math.max(
+          0,
+          Math.round(
+            (
+              target -
+              today
+            ) /
+            86_400_000,
+          ),
+        )
+
+      if (days === 0) {
+        return 'dzisiaj'
+      }
+
+      if (days === 1) {
+        return 'jutro'
+      }
+
+      return `za ${days} dni`
+    },
+  )
+
+
+
 const filteredFlights =
   ref<Flight[]>(
     [],
   )
+
+
+watch(
+  () =>
+    nearestPlannedFlight.value
+      ?.id ??
+    null,
+
+  (
+    currentId,
+    previousId,
+  ) => {
+    if (
+      currentId !==
+      previousId
+    ) {
+      nextFlightBannerDismissed.value =
+        false
+    }
+  },
+)
 
 const mapFlights =
   computed(
@@ -3652,7 +3817,64 @@ onBeforeUnmount(
     <AdminPanel
       v-if="adminRoute"
       :user="currentUser"
+      @close="closeAdminPanel"
     />
+
+    <section
+      v-if="
+        authenticated &&
+        !adminRoute &&
+        !publicProfile &&
+        !fullscreenMapMode &&
+        nearestPlannedFlight &&
+        !nextFlightBannerDismissed
+      "
+      class="next-flight-banner"
+      :class="{
+        'next-flight-banner--sidebar-collapsed':
+          sidebarCollapsed,
+      }"
+      aria-label="Najbliższy zaplanowany lot"
+    >
+      <button
+        type="button"
+        class="next-flight-banner__content"
+        title="Otwórz szczegóły najbliższego lotu"
+        @click="selectFlightFromList(nearestPlannedFlight)"
+      >
+        <strong>
+          {{ nearestPlannedFlight.departure_iata ?? '???' }}
+          →
+          {{ nearestPlannedFlight.arrival_iata ?? '???' }}
+        </strong>
+
+        <span class="next-flight-banner__separator">
+          |
+        </span>
+
+        <strong>
+          {{ nearestPlannedFlight.flight_number || '—' }}
+        </strong>
+
+        <span class="next-flight-banner__separator">
+          |
+        </span>
+
+        <span class="next-flight-banner__countdown">
+          {{ nearestPlannedFlightCountdown }}
+        </span>
+      </button>
+
+      <button
+        type="button"
+        class="next-flight-banner__close"
+        title="Zamknij"
+        aria-label="Zamknij informację o najbliższym locie"
+        @click="nextFlightBannerDismissed = true"
+      >
+        ×
+      </button>
+    </section>
 
     <div
       ref="mapContainer"
@@ -4482,7 +4704,7 @@ textarea {
 .auth-choice-panel h2 {
   margin: 0;
   color: #0b2d5c;
-  font-size: 19px;
+  font-size: 18px;
   line-height: 1.15;
 }
 
@@ -4786,4 +5008,90 @@ textarea {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 0, 0, 0.28);
 }
+
+.next-flight-banner {
+  position: absolute;
+  top: 14px;
+  left: calc(50% + 194px);
+  z-index: 24;
+  display: flex;
+  min-width: 0;
+  max-width: min(360px, calc(100vw - 430px));
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 11px;
+  transform: translateX(-50%);
+  border: 1px solid rgba(11, 45, 92, 0.13);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 7px 22px rgba(11, 45, 92, 0.14);
+  backdrop-filter: blur(10px);
+}
+
+.next-flight-banner--sidebar-collapsed {
+  left: 50%;
+  max-width: min(360px, calc(100vw - 140px));
+}
+
+.next-flight-banner__content {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: baseline;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.next-flight-banner__content:hover strong {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
+.next-flight-banner__separator {
+  color: #a5adb7;
+  font-size: 11px;
+}
+
+.next-flight-banner__countdown {
+  color: #7b7468;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+
+.next-flight-banner strong {
+  overflow: hidden;
+  color: #0b2d5c;
+  font-size: 12px;
+  font-weight: 760;
+  text-overflow: ellipsis;
+}
+
+.next-flight-banner__close {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #7f8995;
+  cursor: pointer;
+  font-size: 19px;
+  line-height: 1;
+}
+
+.next-flight-banner__close:hover {
+  background: #eef2f6;
+  color: #0b2d5c;
+}
+
 </style>

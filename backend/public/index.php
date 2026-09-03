@@ -8,6 +8,9 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Slim\Factory\AppFactory;
 use Transazja\MapaLotowApi\Controller\AccountExportController;
 use Transazja\MapaLotowApi\Controller\AdminController;
+use Transazja\MapaLotowApi\Controller\AdminCatalogController;
+use Transazja\MapaLotowApi\Controller\AdminAuditController;
+use Transazja\MapaLotowApi\Controller\AdminOperationsController;
 use Transazja\MapaLotowApi\Controller\AuthController;
 use Transazja\MapaLotowApi\Controller\FlightController;
 use Transazja\MapaLotowApi\Controller\PublicProfileController;
@@ -15,8 +18,30 @@ use Transazja\MapaLotowApi\Controller\TransAzjaOfferController;
 use Transazja\MapaLotowApi\Database\Database;
 use Transazja\MapaLotowApi\Security\AuthService;
 use Transazja\MapaLotowApi\Service\SmtpMailer;
+use Transazja\MapaLotowApi\Service\AdminAuditService;
 
 require __DIR__ . '/../vendor/autoload.php';
+
+/*
+ * RUNWAY V3:
+ * AdminOperationsController jest nowym kontrolerem.
+ * W części lokalnych instalacji Composer może pracować z wcześniej
+ * wygenerowaną / autorytatywną mapą klas i nie zobaczyć nowego pliku
+ * do czasu composer dump-autoload. Ładujemy go awaryjnie bezpośrednio,
+ * dzięki czemu aktualizacja plików działa od razu.
+ */
+if (!class_exists(AdminOperationsController::class)) {
+    $adminOperationsControllerFile = __DIR__ . '/../src/Controller/AdminOperationsController.php';
+
+    if (!is_file($adminOperationsControllerFile)) {
+        throw new RuntimeException(
+            'Brak pliku backend/src/Controller/AdminOperationsController.php. '
+            . 'Skopiuj nowy plik z paczki RUNWAY V3.'
+        );
+    }
+
+    require_once $adminOperationsControllerFile;
+}
 
 $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
 $dotenv->safeLoad();
@@ -73,7 +98,11 @@ $mailer = new SmtpMailer(
 $authService = new AuthService($pdo);
 $authController = new AuthController($pdo, $authService, $mailer, $appUrl);
 $accountExportController = new AccountExportController($pdo, $authService);
-$adminController = new AdminController($pdo, $authService);
+$adminAuditService = new AdminAuditService($pdo);
+$adminController = new AdminController($pdo, $authService, $mailer, $appUrl, $adminAuditService);
+$adminCatalogController = new AdminCatalogController($pdo, $authService, $adminAuditService);
+$adminAuditController = new AdminAuditController($pdo, $authService);
+$adminOperationsController = new AdminOperationsController($pdo, $authService, $adminAuditService);
 $flightController = new FlightController($pdo, $authService);
 $publicProfileController = new PublicProfileController($pdo, $appUrl);
 $transAzjaOfferController = new TransAzjaOfferController();
@@ -200,9 +229,44 @@ $app->get('/api/admin/dashboard', [$adminController, 'dashboard']);
 $app->get('/api/admin/users', [$adminController, 'users']);
 $app->get('/api/admin/users/{id:[0-9]+}', [$adminController, 'user']);
 $app->put('/api/admin/users/{id:[0-9]+}', [$adminController, 'updateUser']);
+$app->post('/api/admin/users/{id:[0-9]+}/reset-sessions', [$adminController, 'resetUserSessions']);
+$app->post('/api/admin/users/{id:[0-9]+}/resend-activation', [$adminController, 'resendActivation']);
+$app->post('/api/admin/users/{id:[0-9]+}/reset-link', [$adminController, 'createResetLink']);
+$app->get('/api/admin/users/{id:[0-9]+}/preview', [$adminController, 'userPreview']);
+
 $app->get('/api/admin/flights', [$adminController, 'flights']);
 $app->get('/api/admin/flights/{id:[0-9]+}', [$adminController, 'flight']);
+$app->put('/api/admin/flights/{id:[0-9]+}', [$adminController, 'updateFlight']);
 $app->delete('/api/admin/flights/{id:[0-9]+}', [$adminController, 'deleteFlight']);
+
+$app->get('/api/admin/lookups/users', [$adminController, 'lookupUsers']);
+$app->get('/api/admin/lookups/airports', [$adminController, 'lookupAirports']);
+$app->get('/api/admin/lookups/airlines', [$adminController, 'lookupAirlines']);
+$app->get('/api/admin/lookups/aircraft', [$adminController, 'lookupAircraft']);
+
+$app->get('/api/admin/catalog/{type:airports|airlines|aircraft}/options/{field:[A-Za-z_]+}', [$adminCatalogController, 'options']);
+$app->get('/api/admin/catalog/{type:airports|airlines|aircraft}', [$adminCatalogController, 'list']);
+$app->post('/api/admin/catalog/{type:airports|airlines|aircraft}', [$adminCatalogController, 'save']);
+$app->get('/api/admin/catalog/{type:airports|airlines|aircraft}/{id:[0-9]+}', [$adminCatalogController, 'item']);
+$app->put('/api/admin/catalog/{type:airports|airlines|aircraft}/{id:[0-9]+}', [$adminCatalogController, 'save']);
+$app->get('/api/admin/countries', [$adminCatalogController, 'countries']);
+$app->get('/api/admin/aliases', [$adminCatalogController, 'aliases']);
+$app->post('/api/admin/aliases', [$adminCatalogController, 'createAlias']);
+$app->put('/api/admin/aliases/{id:[0-9]+}', [$adminCatalogController, 'updateAlias']);
+$app->delete('/api/admin/aliases/{id:[0-9]+}', [$adminCatalogController, 'deleteAlias']);
+$app->get('/api/admin/duplicates', [$adminCatalogController, 'duplicates']);
+$app->get('/api/admin/audit-log', [$adminAuditController, 'index']);
+$app->get('/api/admin/quality', [$adminOperationsController, 'quality']);
+$app->get('/api/admin/duplicates/details', [$adminOperationsController, 'duplicateDetails']);
+$app->post('/api/admin/duplicates/merge', [$adminOperationsController, 'mergeDuplicates']);
+$app->get('/api/admin/history/{entity:[A-Za-z_]+}/{id:[0-9]+}', [$adminOperationsController, 'history']);
+$app->get('/api/admin/users/{id:[0-9]+}/activity', [$adminOperationsController, 'userActivity']);
+$app->get('/api/admin/security', [$adminOperationsController, 'security']);
+$app->post('/api/admin/security/users/{id:[0-9]+}/unlock', [$adminOperationsController, 'unlockUser']);
+$app->get('/api/admin/service-stats', [$adminOperationsController, 'serviceStats']);
+$app->get('/api/admin/notifications', [$adminOperationsController, 'notifications']);
+$app->put('/api/admin/notifications/{key:[A-Za-z0-9_-]+}', [$adminOperationsController, 'notificationState']);
+$app->get('/api/admin/search', [$adminOperationsController, 'globalSearch']);
 
 $app->get('/api/flights', [$flightController, 'index']);
 $app->post('/api/flights', [$flightController, 'create']);
