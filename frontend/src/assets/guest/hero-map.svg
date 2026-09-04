@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520">
+<defs>
+  <linearGradient id="bg" x1="0" x2="1"><stop stop-color="#dce7ef"/><stop offset="1" stop-color="#f3f6f8"/></linearGradient>
+  <filter id="shadow"><feDropShadow dx="0" dy="5" stdDeviation="8" flood-opacity=".14"/></filter>
+</defs>
+<rect width="900" height="520" rx="28" fill="url(#bg)"/>
+<g fill="#b8cad7" opacity=".8">
+  <path d="M82 182c48-76 144-104 229-77 48 15 81 58 63 96-20 41-77 34-106 68-25 29-19 76-54 96-51 29-117-23-139-76-15-36-14-74 7-107z"/>
+  <path d="M382 141c58-56 145-60 202-29 28 15 49 40 71 63 20 21 51 27 70 50 34 42 7 91-33 110-43 20-86 5-129 7-62 3-125 46-176 5-41-33-31-100-15-145 4-12 5-43 10-61z"/>
+  <path d="M666 333c36-19 82-8 105 20 25 30 7 66-25 82-30 15-73 7-92-21-20-30-15-65 12-81z"/>
+</g>
+<g fill="none" stroke-linecap="round">
+  <path d="M168 255 Q370 78 655 240" stroke="#d62828" stroke-width="3"/>
+  <path d="M168 255 Q413 351 655 240" stroke="#d62828" stroke-width="2.5"/>
+  <path d="M307 217 Q520 103 744 314" stroke="#7c3aed" stroke-width="2.7"/>
+  <path d="M307 217 Q450 374 744 314" stroke="#d62828" stroke-width="2.5"/>
+</g>
+<g filter="url(#shadow)" font-family="Arial, sans-serif" font-size="16" font-weight="700" fill="#0b2d5c">
+  <g><rect x="130" y="235" width="62" height="34" rx="9" fill="white"/><text x="161" y="257" text-anchor="middle">WAW</text></g>
+  <g><rect x="278" y="197" width="62" height="34" rx="9" fill="white"/><text x="309" y="219" text-anchor="middle">CDG</text></g>
+  <g><rect x="624" y="221" width="62" height="34" rx="9" fill="white"/><text x="655" y="243" text-anchor="middle">DXB</text></g>
+  <g><rect x="713" y="296" width="62" height="34" rx="9" fill="white"/><text x="744" y="318" text-anchor="middle">PVG</text></g>
+</g>
+<g filter="url(#shadow)">
+  <rect x="600" y="420" width="244" height="54" rx="13" fill="white"/>
+  <text x="620" y="442" font-family="Arial,sans-serif" font-size="13" fill="#7a8793">Twoja historia</text>
+  <text x="620" y="462" font-family="Arial,sans-serif" font-size="18" font-weight="700" fill="#0b2d5c">438 lotów · 95 lotnisk</text>
+</g>
+</svg>

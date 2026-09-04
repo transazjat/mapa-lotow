@@ -30,6 +30,7 @@ import AddFlightPanel from './components/AddFlightPanel.vue'
 import TripAdCard from './components/TripAdCard.vue'
 import AccountPanel from './components/AccountPanel.vue'
 import AdminPanel from './components/AdminPanel.vue'
+import GuestHome from './components/GuestHome.vue'
 
 import {
   deleteFlight,
@@ -535,6 +536,16 @@ const adminRoute =
 function closeAdminPanel(): void {
   window.location.href = '/'
 }
+
+
+const guestHomeVisible =
+  computed(
+    () =>
+      !authenticated.value &&
+      !publicProfile.value &&
+      !accountPanelMode.value &&
+      !adminRoute.value,
+  )
 
 
 const logoutConfirmOpen =
@@ -3814,6 +3825,12 @@ onBeforeUnmount(
         fullscreenMapMode,
     }"
   >
+    <GuestHome
+      v-if="guestHomeVisible"
+      @login="openAccountPanel('login')"
+      @register="openAccountPanel('register')"
+    />
+
     <AdminPanel
       v-if="adminRoute"
       :user="currentUser"
@@ -3877,12 +3894,16 @@ onBeforeUnmount(
     </section>
 
     <div
+      v-show="!guestHomeVisible"
       ref="mapContainer"
       class="map"
     ></div>
 
     <AppSidebar
-      v-show="!fullscreenMapMode"
+      v-show="
+        !fullscreenMapMode &&
+        !guestHomeVisible
+      "
       :flights="visibleFlights"
       :active-tab="activeTab"
       :scope="scope"
@@ -3913,7 +3934,8 @@ onBeforeUnmount(
     <div
       v-if="
         !sidebarCollapsed &&
-        !fullscreenMapMode
+        !fullscreenMapMode &&
+        !guestHomeVisible
       "
       ref="transAzjaAdPanel"
       class="transazja-ad-panel"
