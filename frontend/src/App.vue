@@ -31,6 +31,8 @@ import TripAdCard from './components/TripAdCard.vue'
 import AccountPanel from './components/AccountPanel.vue'
 import AdminPanel from './components/AdminPanel.vue'
 import GuestHome from './components/GuestHome.vue'
+import AchievementPanel from './components/AchievementPanel.vue'
+import AchievementUnlockModal from './components/AchievementUnlockModal.vue'
 
 import {
   deleteFlight,
@@ -41,6 +43,11 @@ import {
   getUserFlights,
   logoutAccount,
 } from './services/api'
+
+import {
+  markAchievementsNotified,
+  syncAchievements,
+} from './services/achievementsApi'
 
 import {
   addAirportsToMap,
@@ -76,6 +83,10 @@ import type {
   PublicMapProfile,
 } from './types/account'
 
+import type {
+  AchievementItem,
+} from './types/achievement'
+
 setWorkerUrl(
   workerUrl,
 )
@@ -88,10 +99,19 @@ interface DraggableReportElement
 }
 
 
+interface ReportPosition {
+  left: number
+  top: number
+}
+
+
 const vDraggableReport = {
   mounted(
     element:
       DraggableReportElement,
+    binding: {
+      value?: string
+    },
   ): void {
     const handle =
       (
@@ -107,15 +127,28 @@ const vDraggableReport = {
       return
     }
 
-    handle.style.cursor =
-      'grab'
+    const panelKey =
+      binding.value ||
+      element.id ||
+      element.className
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .join('-') ||
+      'report'
 
-    handle.style.userSelect =
-      'none'
+    const storageKey =
+      `mapa-lotow:report-position:${panelKey}`
 
-    handle.title =
-      handle.title ||
-      'Przeciągnij panel'
+    const mobileQuery =
+      window.matchMedia(
+        '(max-width: 900px)',
+      )
+
+    const edgeGap = 18
+    const dragGap = 8
+    const snapThreshold = 28
+    const minimumVisibleHeader = 54
 
     let activePointerId:
       number | null =
@@ -123,17 +156,51 @@ const vDraggableReport = {
 
     let pointerOffsetX = 0
     let pointerOffsetY = 0
-    let originalHeight = 0
-    let originalMaxHeight = ''
     let collapseOffsetX = 0
     let collapseOffsetY = 0
+    let defaultCollapseOffsetX = 0
+    let defaultCollapseOffsetY = 0
+    let draggedHeight = 0
 
-    const minimumVisibleHeader = 54
+    const initialInlineStyle = {
+      position:
+        element.style.position,
+      left:
+        element.style.left,
+      top:
+        element.style.top,
+      right:
+        element.style.right,
+      bottom:
+        element.style.bottom,
+      margin:
+        element.style.margin,
+      height:
+        element.style.height,
+      maxHeight:
+        element.style.maxHeight,
+      zIndex:
+        element.style.zIndex,
+    }
 
     const collapseButton =
       document.querySelector<HTMLElement>(
         '.right-panel-collapse-button',
       )
+
+    element.classList.add(
+      'draggable-report-panel',
+    )
+
+    handle.classList.add(
+      'draggable-report-handle',
+    )
+
+    handle.style.userSelect =
+      'none'
+
+    handle.title =
+      'Przeciągnij panel · dwuklik przywraca położenie'
 
     function clamp(
       value: number,
@@ -141,9 +208,94 @@ const vDraggableReport = {
       maximum: number,
     ): number {
       return Math.min(
-        Math.max(value, minimum),
+        Math.max(
+          value,
+          minimum,
+        ),
         maximum,
       )
+    }
+
+    function isMobile(): boolean {
+      return mobileQuery.matches
+    }
+
+    function readStoredPosition():
+      ReportPosition | null {
+      try {
+        const raw =
+          window.sessionStorage
+            .getItem(
+              storageKey,
+            )
+
+        if (!raw) {
+          return null
+        }
+
+        const parsed =
+          JSON.parse(
+            raw,
+          ) as Partial<ReportPosition>
+
+        if (
+          typeof parsed.left !==
+            'number' ||
+          typeof parsed.top !==
+            'number'
+        ) {
+          return null
+        }
+
+        return {
+          left:
+            parsed.left,
+          top:
+            parsed.top,
+        }
+      } catch {
+        return null
+      }
+    }
+
+    function savePosition(
+      left: number,
+      top: number,
+    ): void {
+      try {
+        window.sessionStorage
+          .setItem(
+            storageKey,
+            JSON.stringify({
+              left,
+              top,
+            }),
+          )
+      } catch {
+        /* Brak sessionStorage nie blokuje przeciągania. */
+      }
+    }
+
+    function clearStoredPosition(): void {
+      try {
+        window.sessionStorage
+          .removeItem(
+            storageKey,
+          )
+      } catch {
+        /* Brak sessionStorage nie blokuje resetu. */
+      }
+    }
+
+    function resetCollapseButton(): void {
+      if (!collapseButton) {
+        return
+      }
+
+      collapseButton.style.position = ''
+      collapseButton.style.left = ''
+      collapseButton.style.top = ''
+      collapseButton.style.right = ''
     }
 
     function placeCollapseButton(
@@ -159,25 +311,320 @@ const vDraggableReport = {
           'right-panel-collapse-button--collapsed',
         )
       ) {
-        collapseButton.style.position = ''
-        collapseButton.style.left = ''
-        collapseButton.style.top = ''
-        collapseButton.style.right = ''
+        resetCollapseButton()
         return
       }
 
-      collapseButton.style.position = 'fixed'
+      collapseButton.style.position =
+        'fixed'
       collapseButton.style.left =
         `${left + collapseOffsetX}px`
       collapseButton.style.top =
         `${top + collapseOffsetY}px`
-      collapseButton.style.right = 'auto'
+      collapseButton.style.right =
+        'auto'
+    }
+
+    function restoreInitialLayout(
+      clearSaved:
+        boolean,
+    ): void {
+      element.style.position =
+        initialInlineStyle.position
+      element.style.left =
+        initialInlineStyle.left
+      element.style.top =
+        initialInlineStyle.top
+      element.style.right =
+        initialInlineStyle.right
+      element.style.bottom =
+        initialInlineStyle.bottom
+      element.style.margin =
+        initialInlineStyle.margin
+      element.style.height =
+        initialInlineStyle.height
+      element.style.maxHeight =
+        initialInlineStyle.maxHeight
+      element.style.zIndex =
+        initialInlineStyle.zIndex
+
+      resetCollapseButton()
+
+      if (clearSaved) {
+        clearStoredPosition()
+      }
+    }
+
+    function getBounds(
+      rect: DOMRect,
+    ): {
+      maxLeft: number
+      maxTop: number
+      snapLeft: number
+    } {
+      const maxLeft =
+        Math.max(
+          dragGap,
+          window.innerWidth -
+            rect.width -
+            dragGap,
+        )
+
+      const maxTop =
+        Math.max(
+          dragGap,
+          window.innerHeight -
+            minimumVisibleHeader,
+        )
+
+      const snapLeft =
+        clamp(
+          window.innerWidth -
+            rect.width -
+            edgeGap,
+          dragGap,
+          maxLeft,
+        )
+
+      return {
+        maxLeft,
+        maxTop,
+        snapLeft,
+      }
+    }
+
+    function normalizePosition(
+      left:
+        number,
+      top:
+        number,
+      rect:
+        DOMRect,
+      withSnap =
+        true,
+    ): ReportPosition {
+      const bounds =
+        getBounds(
+          rect,
+        )
+
+      let normalizedLeft =
+        clamp(
+          left,
+          dragGap,
+          bounds.maxLeft,
+        )
+
+      const normalizedTop =
+        clamp(
+          top,
+          dragGap,
+          bounds.maxTop,
+        )
+
+      if (
+        withSnap &&
+        Math.abs(
+          normalizedLeft -
+            bounds.snapLeft,
+        ) <=
+          snapThreshold
+      ) {
+        normalizedLeft =
+          bounds.snapLeft
+      }
+
+      return {
+        left:
+          normalizedLeft,
+        top:
+          normalizedTop,
+      }
+    }
+
+    function activateFixedLayout(
+      left:
+        number,
+      top:
+        number,
+    ): void {
+      const rect =
+        element.getBoundingClientRect()
+
+      draggedHeight =
+        rect.height
+
+      element.style.position =
+        'fixed'
+      element.style.left =
+        `${left}px`
+      element.style.top =
+        `${top}px`
+      element.style.right =
+        'auto'
+      element.style.bottom =
+        'auto'
+      element.style.margin =
+        '0'
+      element.style.height =
+        `${draggedHeight}px`
+      element.style.maxHeight =
+        `${draggedHeight}px`
+      element.style.zIndex =
+        '60'
+
+      placeCollapseButton(
+        left,
+        top,
+      )
+    }
+
+    function restoreSavedPosition(): void {
+      if (isMobile()) {
+        restoreInitialLayout(
+          false,
+        )
+        return
+      }
+
+      const stored =
+        readStoredPosition()
+
+      if (!stored) {
+        return
+      }
+
+      const rect =
+        element.getBoundingClientRect()
+
+      const normalized =
+        normalizePosition(
+          stored.left,
+          stored.top,
+          rect,
+        )
+
+      activateFixedLayout(
+        normalized.left,
+        normalized.top,
+      )
+
+      savePosition(
+        normalized.left,
+        normalized.top,
+      )
+    }
+
+    function captureCollapseOffsets(): void {
+      if (!collapseButton) {
+        return
+      }
+
+      const panelRect =
+        element.getBoundingClientRect()
+
+      /*
+       * Nie bierzemy już położenia przycisku zwijania "z ekranu",
+       * bo po przejściu między raportami może on chwilowo zachować
+       * pozycję poprzedniego panelu. To właśnie powodowało ostatni
+       * wyjątek w raporcie "Pokonany dystans".
+       *
+       * Zamiast tego wyliczamy pozycję względem prawego przycisku
+       * w nagłówku aktualnego panelu (czyli X), tak samo jak robi
+       * normalizeRightPanelControls().
+       */
+      const panelHeader =
+        (
+          element.querySelector(
+            '.panel-header',
+          ) ??
+          element.querySelector(
+            'header',
+          )
+        ) as HTMLElement | null
+
+      const panelButtons =
+        Array.from(
+          (
+            panelHeader ??
+            element
+          )
+            .querySelectorAll<HTMLButtonElement>(
+              'button',
+            ),
+        )
+          .filter(
+            (button) => {
+              const rect =
+                button.getBoundingClientRect()
+
+              return (
+                rect.width > 0 &&
+                rect.height > 0
+              )
+            },
+          )
+          .sort(
+            (a, b) =>
+              b.getBoundingClientRect()
+                .right -
+              a.getBoundingClientRect()
+                .right,
+          )
+
+      const closeButton =
+        panelButtons[0]
+
+      if (closeButton) {
+        const closeRect =
+          closeButton.getBoundingClientRect()
+
+        const collapseRect =
+          collapseButton.getBoundingClientRect()
+
+        const collapseWidth =
+          collapseRect.width > 0
+            ? collapseRect.width
+            : closeRect.width
+
+        const buttonGap =
+          14
+
+        defaultCollapseOffsetX =
+          closeRect.left -
+          panelRect.left -
+          collapseWidth -
+          buttonGap
+
+        defaultCollapseOffsetY =
+          closeRect.top -
+          panelRect.top
+      } else {
+        const buttonRect =
+          collapseButton.getBoundingClientRect()
+
+        defaultCollapseOffsetX =
+          buttonRect.left -
+          panelRect.left
+
+        defaultCollapseOffsetY =
+          buttonRect.top -
+          panelRect.top
+      }
+
+      collapseOffsetX =
+        defaultCollapseOffsetX
+      collapseOffsetY =
+        defaultCollapseOffsetY
     }
 
     function handlePointerDown(
       event: PointerEvent,
     ): void {
-      if (event.button !== 0) {
+      if (
+        isMobile() ||
+        event.button !== 0
+      ) {
         return
       }
 
@@ -199,50 +646,31 @@ const vDraggableReport = {
         event.pointerId
 
       pointerOffsetX =
-        event.clientX - rect.left
+        event.clientX -
+        rect.left
 
       pointerOffsetY =
-        event.clientY - rect.top
+        event.clientY -
+        rect.top
 
-      /*
-       * Zachowujemy dokładnie wysokość, jaką panel miał przed
-       * rozpoczęciem przeciągania. Obejmuje to ograniczenie wynikające
-       * z reklamy TransAzji na dole ekranu. Przesuwanie zmienia wyłącznie
-       * pozycję panelu - nie jego rozmiar.
-       */
-      originalHeight = rect.height
-      originalMaxHeight =
-        element.style.maxHeight
-
-      element.style.position = 'fixed'
-      element.style.left = `${rect.left}px`
-      element.style.top = `${rect.top}px`
-      element.style.right = 'auto'
-      element.style.bottom = 'auto'
-      element.style.margin = '0'
-      element.style.height =
-        `${originalHeight}px`
-      element.style.maxHeight =
-        `${originalHeight}px`
-      element.style.zIndex = '60'
-
-      if (collapseButton) {
-        const buttonRect =
-          collapseButton.getBoundingClientRect()
-
+      if (
+        element.style.position !==
+        'fixed'
+      ) {
         collapseOffsetX =
-          buttonRect.left - rect.left
+          defaultCollapseOffsetX
         collapseOffsetY =
-          buttonRect.top - rect.top
+          defaultCollapseOffsetY
 
-        placeCollapseButton(
+        activateFixedLayout(
           rect.left,
           rect.top,
         )
       }
 
-      handle.style.cursor =
-        'grabbing'
+      handle.classList.add(
+        'draggable-report-handle--active',
+      )
 
       handle.setPointerCapture(
         event.pointerId,
@@ -264,45 +692,23 @@ const vDraggableReport = {
       const rect =
         element.getBoundingClientRect()
 
-      const maxLeft =
-        Math.max(
-          8,
-          window.innerWidth -
-            rect.width -
-            8,
-        )
-
-      const maxTop =
-        Math.max(
-          8,
-          window.innerHeight -
-            minimumVisibleHeader,
-        )
-
-      const left =
-        clamp(
+      const normalized =
+        normalizePosition(
           event.clientX -
             pointerOffsetX,
-          8,
-          maxLeft,
-        )
-
-      const top =
-        clamp(
           event.clientY -
             pointerOffsetY,
-          8,
-          maxTop,
+          rect,
         )
 
       element.style.left =
-        `${left}px`
+        `${normalized.left}px`
       element.style.top =
-        `${top}px`
+        `${normalized.top}px`
 
       placeCollapseButton(
-        left,
-        top,
+        normalized.left,
+        normalized.top,
       )
 
       event.preventDefault()
@@ -319,7 +725,10 @@ const vDraggableReport = {
       }
 
       activePointerId = null
-      handle.style.cursor = 'grab'
+
+      handle.classList.remove(
+        'draggable-report-handle--active',
+      )
 
       if (
         handle.hasPointerCapture(
@@ -330,42 +739,92 @@ const vDraggableReport = {
           event.pointerId,
         )
       }
+
+      if (
+        element.style.position ===
+        'fixed'
+      ) {
+        const rect =
+          element.getBoundingClientRect()
+
+        savePosition(
+          rect.left,
+          rect.top,
+        )
+      }
+    }
+
+    function resetPosition(): void {
+      if (activePointerId !== null) {
+        return
+      }
+
+      restoreInitialLayout(
+        true,
+      )
+
+      /*
+       * Reset pozycji ma przywrócić panel do jego standardowego miejsca,
+       * ale NIE może usuwać ograniczenia wysokości nad reklamą TransAzji.
+       * Po zdjęciu stylów drag ponownie wyliczamy maksymalną wysokość
+       * normalnego prawego panelu.
+       */
+      const closeButton =
+        element.querySelector<HTMLButtonElement>(
+          "button[title='Zamknij'], button[aria-label='Zamknij']",
+        )
+
+      if (closeButton) {
+        fitRightPanelAboveTransAzjaAd(
+          closeButton,
+        )
+      }
+
+      window.requestAnimationFrame(
+        normalizeRightPanelControls,
+      )
     }
 
     function keepInsideViewport(): void {
+      if (isMobile()) {
+        restoreInitialLayout(
+          false,
+        )
+        return
+      }
+
       if (
         element.style.position !==
         'fixed'
       ) {
+        restoreSavedPosition()
         return
       }
 
       const rect =
         element.getBoundingClientRect()
 
-      const maxLeft =
-        Math.max(
-          8,
-          window.innerWidth -
-            rect.width -
-            8,
+      const normalized =
+        normalizePosition(
+          rect.left,
+          rect.top,
+          rect,
         )
 
-      const maxTop =
-        Math.max(
-          8,
-          window.innerHeight -
-            minimumVisibleHeader,
-        )
+      element.style.left =
+        `${normalized.left}px`
+      element.style.top =
+        `${normalized.top}px`
 
-      const left =
-        clamp(rect.left, 8, maxLeft)
-      const top =
-        clamp(rect.top, 8, maxTop)
+      placeCollapseButton(
+        normalized.left,
+        normalized.top,
+      )
 
-      element.style.left = `${left}px`
-      element.style.top = `${top}px`
-      placeCollapseButton(left, top)
+      savePosition(
+        normalized.left,
+        normalized.top,
+      )
     }
 
     function syncCollapseAfterClick(): void {
@@ -380,12 +839,11 @@ const vDraggableReport = {
               'right-panel-collapse-button--collapsed',
             )
           ) {
-            collapseButton.style.position = ''
-            collapseButton.style.left = ''
-            collapseButton.style.top = ''
-            collapseButton.style.right = ''
+            resetCollapseButton()
             return
           }
+
+          captureCollapseOffsets()
 
           if (
             element.style.position ===
@@ -404,6 +862,28 @@ const vDraggableReport = {
       )
     }
 
+    function handleMediaChange(): void {
+      if (isMobile()) {
+        restoreInitialLayout(
+          false,
+        )
+
+        handle.classList.add(
+          'draggable-report-handle--disabled',
+        )
+      } else {
+        handle.classList.remove(
+          'draggable-report-handle--disabled',
+        )
+
+        window.requestAnimationFrame(
+          restoreSavedPosition,
+        )
+      }
+    }
+
+    captureCollapseOffsets()
+
     handle.addEventListener(
       'pointerdown',
       handlePointerDown,
@@ -420,13 +900,36 @@ const vDraggableReport = {
       'pointercancel',
       finishDrag,
     )
+    handle.addEventListener(
+      'dblclick',
+      resetPosition,
+    )
+
     window.addEventListener(
       'resize',
       keepInsideViewport,
     )
+
+    mobileQuery.addEventListener(
+      'change',
+      handleMediaChange,
+    )
+
     collapseButton?.addEventListener(
       'click',
       syncCollapseAfterClick,
+    )
+
+    handleMediaChange()
+
+    window.requestAnimationFrame(
+      () => {
+        restoreSavedPosition()
+
+        window.requestAnimationFrame(
+          captureCollapseOffsets,
+        )
+      },
     )
 
     element.__reportDragCleanup =
@@ -447,26 +950,37 @@ const vDraggableReport = {
           'pointercancel',
           finishDrag,
         )
+        handle.removeEventListener(
+          'dblclick',
+          resetPosition,
+        )
+
         window.removeEventListener(
           'resize',
           keepInsideViewport,
         )
+
+        mobileQuery.removeEventListener(
+          'change',
+          handleMediaChange,
+        )
+
         collapseButton?.removeEventListener(
           'click',
           syncCollapseAfterClick,
         )
 
-        if (collapseButton) {
-          collapseButton.style.position = ''
-          collapseButton.style.left = ''
-          collapseButton.style.top = ''
-          collapseButton.style.right = ''
-        }
+        element.classList.remove(
+          'draggable-report-panel',
+        )
 
-        /* Nowy raport ma znów korzystać z normalnego układu po prawej. */
-        element.style.height = ''
-        element.style.maxHeight =
-          originalMaxHeight
+        handle.classList.remove(
+          'draggable-report-handle',
+          'draggable-report-handle--active',
+          'draggable-report-handle--disabled',
+        )
+
+        resetCollapseButton()
       }
   },
 
@@ -508,6 +1022,15 @@ const accountToken =
   ref<string | null>(
     null,
   )
+
+const achievementsOpen =
+  ref(false)
+
+const achievementUnlocks =
+  ref<AchievementItem[]>([])
+
+const achievementCompletedFlights =
+  ref(0)
 
 const publicProfile =
   ref<PublicMapProfile | null>(
@@ -1229,38 +1752,123 @@ function normalizeRightPanelControls(): void {
         return
       }
 
-      const closeButtons =
+      /*
+       * Najpierw szukamy przycisku zamknięcia wewnątrz aktualnie
+       * widocznego przesuwanego panelu. To eliminuje przypadek, w którym
+       * przy raportach Dystans / Czas w powietrzu globalne wyszukiwanie
+       * wskazywało nie ten przycisk i przycisk zwijania odsuwał się od X.
+       */
+      const visibleDraggablePanels =
         Array.from(
-          document.querySelectorAll<HTMLButtonElement>(
-            "button[title='Zamknij'], button[aria-label='Zamknij']",
+          document.querySelectorAll<HTMLElement>(
+            '.draggable-report-panel',
           ),
         )
           .filter(
-            (button) => {
+            (panel) => {
               const rect =
-                button.getBoundingClientRect()
+                panel.getBoundingClientRect()
 
               return (
-                rect.width >
-                  0 &&
-                rect.height >
-                  0 &&
-                rect.right >
-                  window.innerWidth /
-                    2
+                rect.width > 0 &&
+                rect.height > 0 &&
+                window
+                  .getComputedStyle(
+                    panel,
+                  )
+                  .display !==
+                  'none'
               )
             },
           )
-          .sort(
-            (a, b) =>
-              b.getBoundingClientRect()
-                .right -
-              a.getBoundingClientRect()
-                .right,
-          )
 
-      const closeButton =
-        closeButtons[0]
+      const activePanel =
+        visibleDraggablePanels[
+          visibleDraggablePanels.length -
+            1
+        ]
+
+      let closeButton:
+        HTMLButtonElement | undefined
+
+      if (activePanel) {
+        const panelHeader =
+          (
+            activePanel.querySelector(
+              '.panel-header',
+            ) ??
+            activePanel.querySelector(
+              'header',
+            )
+          ) as HTMLElement | null
+
+        const panelButtons =
+          Array.from(
+            (
+              panelHeader ??
+              activePanel
+            )
+              .querySelectorAll<HTMLButtonElement>(
+                'button',
+              ),
+          )
+            .filter(
+              (button) => {
+                const rect =
+                  button.getBoundingClientRect()
+
+                return (
+                  rect.width > 0 &&
+                  rect.height > 0
+                )
+              },
+            )
+            .sort(
+              (a, b) =>
+                b.getBoundingClientRect()
+                  .right -
+                a.getBoundingClientRect()
+                  .right,
+            )
+
+        closeButton =
+          panelButtons[0]
+      }
+
+      if (!closeButton) {
+        const closeButtons =
+          Array.from(
+            document.querySelectorAll<HTMLButtonElement>(
+              "button[title='Zamknij'], button[aria-label='Zamknij']",
+            ),
+          )
+            .filter(
+              (button) => {
+                const rect =
+                  button.getBoundingClientRect()
+
+                return (
+                  rect.width >
+                    0 &&
+                  rect.height >
+                    0 &&
+                  rect.right >
+                    window.innerWidth /
+                      2
+                )
+              },
+            )
+            .sort(
+              (a, b) =>
+                b.getBoundingClientRect()
+                  .right -
+                a.getBoundingClientRect()
+                  .right,
+            )
+
+        closeButton =
+          closeButtons[0]
+      }
 
       if (!closeButton) {
         return
@@ -1807,6 +2415,9 @@ function openAccountPanel(
     | 'account'
     | 'export',
 ): void {
+  achievementsOpen.value =
+    false
+
   closeOtherRightPanelsForAccount()
 
   activeTab.value =
@@ -1831,6 +2442,87 @@ function setAccountPanelMode(
 function closeAccountPanel(): void {
   accountPanelMode.value =
     null
+}
+
+
+function handleAccountAction(
+  mode:
+    | 'login'
+    | 'register'
+    | 'account'
+    | 'export'
+    | 'achievements',
+): void {
+  if (mode !== 'achievements') {
+    openAccountPanel(mode)
+    return
+  }
+
+  closeOtherRightPanelsForAccount()
+
+  activeTab.value =
+    'account'
+
+  accountPanelMode.value =
+    null
+
+  achievementsOpen.value =
+    true
+}
+
+
+function closeAchievements(): void {
+  achievementsOpen.value =
+    false
+}
+
+
+async function syncFlightAchievements(): Promise<void> {
+  if (!currentUser.value) {
+    return
+  }
+
+  try {
+    const state =
+      await syncAchievements()
+
+    achievementCompletedFlights.value =
+      state.completed_flights
+
+    if (
+      state.pending_unlocks.length >
+        0
+    ) {
+      achievementUnlocks.value =
+        state.pending_unlocks
+    }
+  } catch (error) {
+    console.warn(
+      'Nie udało się zsynchronizować osiągnięć.',
+      error,
+    )
+  }
+}
+
+
+async function closeAchievementUnlock(): Promise<void> {
+  const keys =
+    achievementUnlocks.value.map(
+      (item) => item.key,
+    )
+
+  achievementUnlocks.value = []
+
+  try {
+    await markAchievementsNotified(
+      keys,
+    )
+  } catch (error) {
+    console.warn(
+      'Nie udało się oznaczyć osiągnięcia jako wyświetlonego.',
+      error,
+    )
+  }
 }
 
 
@@ -1867,6 +2559,8 @@ async function refreshAuthenticatedFlights(): Promise<void> {
       mapFlights.value,
     )
   }
+
+  await syncFlightAchievements()
 }
 
 
@@ -2242,6 +2936,8 @@ async function refreshFlightsAfterSave(
   await loadFlight(
     flightId,
   )
+
+  await syncFlightAchievements()
 }
 
 
@@ -2291,6 +2987,8 @@ async function deleteSelectedFlight(): Promise<void> {
         mapFlights.value,
       )
     }
+
+    await syncFlightAchievements()
   } catch (
     error
   ) {
@@ -3926,7 +4624,7 @@ onBeforeUnmount(
       @statistics-records="openStatisticsRecords"
       @add-flight="openAddFlight"
       @auth-choice="openAuthChoice"
-      @account-action="openAccountPanel"
+      @account-action="handleAccountAction"
       @fullscreen="toggleMapFullscreen"
       @logout="requestToolboxLogout"
     />
@@ -4103,6 +4801,28 @@ onBeforeUnmount(
       </section>
     </div>
 
+    <AchievementPanel
+      v-if="
+        achievementsOpen &&
+        currentUser &&
+        !fullscreenMapMode
+      "
+      :nick="currentUser.nick"
+      @close="closeAchievements"
+    />
+
+    <AchievementUnlockModal
+      v-if="
+        achievementUnlocks.length > 0 &&
+        currentUser &&
+        !fullscreenMapMode
+      "
+      :achievements="achievementUnlocks"
+      :completed-flights="achievementCompletedFlights"
+      :nick="currentUser.nick"
+      @close="closeAchievementUnlock"
+    />
+
     <AccountPanel
       v-if="
         accountPanelMode &&
@@ -4269,7 +4989,7 @@ onBeforeUnmount(
         !fullscreenMapMode
       "
       key="statistics-airports"
-      v-draggable-report
+      v-draggable-report="'statistics-airports'"
       v-show="!rightPanelCollapsed"
       :flights="visibleFlights"
       @airport="openAirportFromStatistics"
@@ -4282,7 +5002,7 @@ onBeforeUnmount(
         !fullscreenMapMode
       "
       :key="`statistics-report:${statisticsReport}`"
-      v-draggable-report
+      v-draggable-report="`statistics-report:${statisticsReport}`"
       v-show="!rightPanelCollapsed"
       :flights="visibleFlights"
       :report-type="statisticsReport"
@@ -4295,7 +5015,7 @@ onBeforeUnmount(
         !fullscreenMapMode
       "
       :key="`statistics-section:${statisticsSection}`"
-      v-draggable-report
+      v-draggable-report="`statistics-section:${statisticsSection}`"
       v-show="!rightPanelCollapsed"
       :flights="visibleFlights"
       :section="statisticsSection"
@@ -4310,7 +5030,7 @@ onBeforeUnmount(
         !fullscreenMapMode
       "
       key="statistics-records"
-      v-draggable-report
+      v-draggable-report="'statistics-records'"
       v-show="!rightPanelCollapsed"
       :flights="visibleFlights"
       @close="closeStatisticsRecords"
@@ -5114,6 +5834,51 @@ textarea {
 .next-flight-banner__close:hover {
   background: #eef2f6;
   color: #0b2d5c;
+}
+
+
+/* Przesuwane panele raportowe - uchwyt i stany. */
+.draggable-report-handle {
+  position: relative;
+  cursor: grab !important;
+  user-select: none !important;
+  touch-action: none;
+}
+
+.draggable-report-handle::before {
+  content: "•••";
+  position: absolute;
+  left: 50%;
+  top: 3px;
+  z-index: 2;
+  transform: translateX(-50%);
+  color: rgba(80, 96, 112, 0.38);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.draggable-report-handle:hover::before {
+  color: rgba(11, 45, 92, 0.55);
+}
+
+.draggable-report-handle--active {
+  cursor: grabbing !important;
+}
+
+.draggable-report-handle--active::before {
+  color: rgba(11, 45, 92, 0.72);
+}
+
+.draggable-report-handle--disabled {
+  cursor: default !important;
+  touch-action: auto;
+}
+
+.draggable-report-handle--disabled::before {
+  display: none;
 }
 
 </style>

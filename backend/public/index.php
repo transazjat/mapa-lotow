@@ -12,6 +12,7 @@ use Transazja\MapaLotowApi\Controller\AdminCatalogController;
 use Transazja\MapaLotowApi\Controller\AdminAuditController;
 use Transazja\MapaLotowApi\Controller\AdminOperationsController;
 use Transazja\MapaLotowApi\Controller\AuthController;
+use Transazja\MapaLotowApi\Controller\AchievementController;
 use Transazja\MapaLotowApi\Controller\FlightController;
 use Transazja\MapaLotowApi\Controller\PublicProfileController;
 use Transazja\MapaLotowApi\Controller\TransAzjaOfferController;
@@ -21,27 +22,6 @@ use Transazja\MapaLotowApi\Service\SmtpMailer;
 use Transazja\MapaLotowApi\Service\AdminAuditService;
 
 require __DIR__ . '/../vendor/autoload.php';
-
-/*
- * RUNWAY V3:
- * AdminOperationsController jest nowym kontrolerem.
- * W części lokalnych instalacji Composer może pracować z wcześniej
- * wygenerowaną / autorytatywną mapą klas i nie zobaczyć nowego pliku
- * do czasu composer dump-autoload. Ładujemy go awaryjnie bezpośrednio,
- * dzięki czemu aktualizacja plików działa od razu.
- */
-if (!class_exists(AdminOperationsController::class)) {
-    $adminOperationsControllerFile = __DIR__ . '/../src/Controller/AdminOperationsController.php';
-
-    if (!is_file($adminOperationsControllerFile)) {
-        throw new RuntimeException(
-            'Brak pliku backend/src/Controller/AdminOperationsController.php. '
-            . 'Skopiuj nowy plik z paczki RUNWAY V3.'
-        );
-    }
-
-    require_once $adminOperationsControllerFile;
-}
 
 $dotenv = Dotenv::createImmutable(__DIR__ . '/..');
 $dotenv->safeLoad();
@@ -97,6 +77,7 @@ $mailer = new SmtpMailer(
 
 $authService = new AuthService($pdo);
 $authController = new AuthController($pdo, $authService, $mailer, $appUrl);
+$achievementController = new AchievementController($pdo, $authService);
 $accountExportController = new AccountExportController($pdo, $authService);
 $adminAuditService = new AdminAuditService($pdo);
 $adminController = new AdminController($pdo, $authService, $mailer, $appUrl, $adminAuditService);
@@ -212,6 +193,10 @@ $app->post('/api/account/share-link/regenerate', [$authController, 'regenerateSh
 $app->put('/api/account/password', [$authController, 'changePassword']);
 $app->post('/api/account/email', [$authController, 'requestEmailChange']);
 $app->post('/api/account/email/confirm', [$authController, 'confirmEmailChange']);
+
+$app->get('/api/achievements', [$achievementController, 'index']);
+$app->post('/api/achievements/sync', [$achievementController, 'sync']);
+$app->post('/api/achievements/mark-notified', [$achievementController, 'markNotified']);
 $app->get('/api/account/export/{format:csv|xlsx|json}', [$accountExportController, 'export']);
 
 $app->get(

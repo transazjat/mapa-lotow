@@ -44,7 +44,7 @@ const emit = defineEmits<{
   addFlight: []
   fullscreen: []
   authChoice: []
-  accountAction: [mode: 'login' | 'register' | 'account' | 'export']
+  accountAction: [mode: 'login' | 'register' | 'account' | 'export' | 'achievements']
   logout: []
 }>()
 
@@ -729,8 +729,8 @@ function openStatisticsSection(
           <div class="account-tools-grid">
             <button
               type="button"
-              class="account-tool-card account-tool-card--future"
-              title="Funkcja będzie dostępna w przyszłości"
+              class="account-tool-card account-tool-card--active"
+              @click="emit('accountAction', 'achievements')"
             >
               <span
                 class="account-tool-card__icon"
