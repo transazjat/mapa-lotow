@@ -24,6 +24,55 @@ final class AchievementController
         1000,
     ];
 
+    private const DISTANCE_THRESHOLDS = [
+        10000,
+        25000,
+        50000,
+        100000,
+        250000,
+        500000,
+        750000,
+        1000000,
+        1500000,
+        2000000,
+    ];
+
+    private const AIRPORT_THRESHOLDS = [
+        5,
+        10,
+        25,
+        50,
+        75,
+        100,
+        125,
+        150,
+        200,
+        250,
+    ];
+
+    private const COUNTRY_THRESHOLDS = [
+        5,
+        10,
+        15,
+        20,
+        25,
+        30,
+        40,
+        50,
+        75,
+        100,
+    ];
+
+    private const CONTINENT_THRESHOLDS = [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+    ];
+
     public function __construct(
         private PDO $pdo,
         private AuthService $auth
@@ -40,8 +89,6 @@ final class AchievementController
             return $userId;
         }
 
-        // Bezpieczny fallback: jeśli użytkownik osiągnął próg po migracji,
-        // ale synchronizacja nie została jeszcze wywołana, uzupełniamy wpis.
         $this->syncMissingAchievements($userId);
 
         return $this->json(
@@ -63,9 +110,17 @@ final class AchievementController
         $newKeys = $this->syncMissingAchievements($userId);
         $state = $this->buildState($userId);
 
+        $allAchievements = [
+            ...$state['achievements'],
+            ...$state['distance']['achievements'],
+            ...$state['airports']['achievements'],
+            ...$state['countries']['achievements'],
+            ...$state['continents']['achievements'],
+        ];
+
         $state['newly_earned'] = array_values(
             array_filter(
-                $state['achievements'],
+                $allAchievements,
                 static fn(array $item): bool => in_array(
                     $item['key'],
                     $newKeys,
@@ -106,16 +161,35 @@ final class AchievementController
             );
         }
 
+        $allowedKeys = [];
+
+        foreach (self::FLIGHT_THRESHOLDS as $threshold) {
+            $allowedKeys['flights_' . $threshold] = true;
+        }
+
+        foreach (self::DISTANCE_THRESHOLDS as $threshold) {
+            $allowedKeys['distance_' . $threshold] = true;
+        }
+
+        foreach (self::AIRPORT_THRESHOLDS as $threshold) {
+            $allowedKeys['airports_' . $threshold] = true;
+        }
+
+        foreach (self::COUNTRY_THRESHOLDS as $threshold) {
+            $allowedKeys['countries_' . $threshold] = true;
+        }
+
+        foreach (self::CONTINENT_THRESHOLDS as $threshold) {
+            $allowedKeys['continents_' . $threshold] = true;
+        }
+
         $keys = array_values(
             array_filter(
                 array_map(
                     static fn($key): string => trim((string) $key),
                     $keys
                 ),
-                static fn(string $key): bool => preg_match(
-                    '/^flights_(25|50|100|200|300|400|500|600|750|1000)$/',
-                    $key
-                ) === 1
+                static fn(string $key): bool => isset($allowedKeys[$key])
             )
         );
 
@@ -156,9 +230,113 @@ final class AchievementController
      */
     private function syncMissingAchievements(int $userId): array
     {
+        return [
+            ...$this->syncFlightAchievements($userId),
+            ...$this->syncDistanceAchievements($userId),
+            ...$this->syncAirportAchievements($userId),
+            ...$this->syncCountryAchievements($userId),
+            ...$this->syncContinentAchievements($userId),
+        ];
+    }
+
+    /** @return list<string> */
+    private function syncFlightAchievements(int $userId): array
+    {
         $completedFlights = $this->completedFlightCount($userId);
 
-        if ($completedFlights < self::FLIGHT_THRESHOLDS[0]) {
+        return $this->syncFamilyAchievements(
+            $userId,
+            'flights',
+            self::FLIGHT_THRESHOLDS,
+            $completedFlights,
+            fn(int $threshold): ?string => $this->flightThresholdEarnedAt(
+                $userId,
+                $threshold
+            )
+        );
+    }
+
+    /** @return list<string> */
+    private function syncDistanceAchievements(int $userId): array
+    {
+        $completedDistance = $this->completedDistanceKm($userId);
+
+        return $this->syncFamilyAchievements(
+            $userId,
+            'distance',
+            self::DISTANCE_THRESHOLDS,
+            $completedDistance,
+            fn(int $threshold): ?string => $this->distanceThresholdEarnedAt(
+                $userId,
+                $threshold
+            )
+        );
+    }
+
+    /** @return list<string> */
+    private function syncAirportAchievements(int $userId): array
+    {
+        $completedAirports = $this->completedAirportCount($userId);
+
+        return $this->syncFamilyAchievements(
+            $userId,
+            'airports',
+            self::AIRPORT_THRESHOLDS,
+            $completedAirports,
+            fn(int $threshold): ?string => $this->airportThresholdEarnedAt(
+                $userId,
+                $threshold
+            )
+        );
+    }
+
+    /** @return list<string> */
+    private function syncCountryAchievements(int $userId): array
+    {
+        $completedCountries = $this->completedCountryCount($userId);
+
+        return $this->syncFamilyAchievements(
+            $userId,
+            'countries',
+            self::COUNTRY_THRESHOLDS,
+            $completedCountries,
+            fn(int $threshold): ?string => $this->countryThresholdEarnedAt(
+                $userId,
+                $threshold
+            )
+        );
+    }
+
+    /** @return list<string> */
+    private function syncContinentAchievements(int $userId): array
+    {
+        $completedContinents = $this->completedContinentCount($userId);
+
+        return $this->syncFamilyAchievements(
+            $userId,
+            'continents',
+            self::CONTINENT_THRESHOLDS,
+            $completedContinents,
+            fn(int $threshold): ?string => $this->continentThresholdEarnedAt(
+                $userId,
+                $threshold
+            )
+        );
+    }
+
+    /**
+     * @param list<int> $thresholds
+     * @param callable(int): ?string $earnedAtResolver
+     * @return list<string>
+     */
+    private function syncFamilyAchievements(
+        int $userId,
+        string $family,
+        array $thresholds,
+        int $currentValue,
+        callable $earnedAtResolver
+    ): array {
+        if ($currentValue < $thresholds[0]) {
             return [];
         }
 
@@ -167,11 +345,12 @@ final class AchievementController
             SELECT achievement_key
             FROM ml_user_achievements
             WHERE user_id = :user_id
-              AND family = 'flights'
+              AND family = :family
             "
         );
         $existingStmt->execute([
             'user_id' => $userId,
+            'family' => $family,
         ]);
 
         $existing = array_fill_keys(
@@ -196,7 +375,7 @@ final class AchievementController
             ) VALUES (
                 :user_id,
                 :achievement_key,
-                'flights',
+                :family,
                 :threshold_value,
                 :earned_at,
                 NULL,
@@ -208,21 +387,18 @@ final class AchievementController
 
         $newKeys = [];
 
-        foreach (self::FLIGHT_THRESHOLDS as $threshold) {
-            if ($completedFlights < $threshold) {
+        foreach ($thresholds as $threshold) {
+            if ($currentValue < $threshold) {
                 break;
             }
 
-            $key = 'flights_' . $threshold;
+            $key = $family . '_' . $threshold;
 
             if (isset($existing[$key])) {
                 continue;
             }
 
-            $earnedAt = $this->thresholdEarnedAt(
-                $userId,
-                $threshold
-            );
+            $earnedAt = $earnedAtResolver($threshold);
 
             if ($earnedAt === null) {
                 continue;
@@ -231,6 +407,7 @@ final class AchievementController
             $insert->execute([
                 'user_id' => $userId,
                 'achievement_key' => $key,
+                'family' => $family,
                 'threshold_value' => $threshold,
                 'earned_at' => $earnedAt,
             ]);
@@ -260,7 +437,114 @@ final class AchievementController
         return (int) $stmt->fetchColumn();
     }
 
-    private function thresholdEarnedAt(
+    private function completedDistanceKm(int $userId): int
+    {
+        $stmt = $this->pdo->prepare(
+            "
+            SELECT COALESCE(SUM(COALESCE(distance_km, 0)), 0)
+            FROM ml_flights
+            WHERE user_id = :user_id
+              AND departure_date <= CURDATE()
+            "
+        );
+        $stmt->execute([
+            'user_id' => $userId,
+        ]);
+
+        return (int) floor((float) $stmt->fetchColumn());
+    }
+
+    private function completedAirportCount(int $userId): int
+    {
+        $stmt = $this->pdo->prepare(
+            "
+            SELECT COUNT(*)
+            FROM (
+                SELECT departure_airport_id AS airport_id
+                FROM ml_flights
+                WHERE user_id = :user_id_departure
+                  AND departure_date <= CURDATE()
+                  AND departure_airport_id IS NOT NULL
+                UNION
+                SELECT arrival_airport_id AS airport_id
+                FROM ml_flights
+                WHERE user_id = :user_id_arrival
+                  AND departure_date <= CURDATE()
+                  AND arrival_airport_id IS NOT NULL
+            ) AS visited_airports
+            "
+        );
+        $stmt->execute([
+            'user_id_departure' => $userId,
+            'user_id_arrival' => $userId,
+        ]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    private function completedCountryCount(int $userId): int
+    {
+        $stmt = $this->pdo->prepare(
+            "
+            SELECT COUNT(*)
+            FROM (
+                SELECT dep.country_id AS country_id
+                FROM ml_flights f
+                JOIN ml_airports dep ON dep.id = f.departure_airport_id
+                WHERE f.user_id = :user_id_departure
+                  AND f.departure_date <= CURDATE()
+                  AND dep.country_id IS NOT NULL
+                UNION
+                SELECT arr.country_id AS country_id
+                FROM ml_flights f
+                JOIN ml_airports arr ON arr.id = f.arrival_airport_id
+                WHERE f.user_id = :user_id_arrival
+                  AND f.departure_date <= CURDATE()
+                  AND arr.country_id IS NOT NULL
+            ) AS visited_countries
+            "
+        );
+        $stmt->execute([
+            'user_id_departure' => $userId,
+            'user_id_arrival' => $userId,
+        ]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    private function completedContinentCount(int $userId): int
+    {
+        $stmt = $this->pdo->prepare(
+            "
+            SELECT COUNT(*)
+            FROM (
+                SELECT dep_country.continent_code AS continent_code
+                FROM ml_flights f
+                JOIN ml_airports dep_airport ON dep_airport.id = f.departure_airport_id
+                JOIN ml_countries dep_country ON dep_country.id = dep_airport.country_id
+                WHERE f.user_id = :user_id_departure
+                  AND f.departure_date <= CURDATE()
+                  AND dep_country.continent_code IS NOT NULL
+                UNION
+                SELECT arr_country.continent_code AS continent_code
+                FROM ml_flights f
+                JOIN ml_airports arr_airport ON arr_airport.id = f.arrival_airport_id
+                JOIN ml_countries arr_country ON arr_country.id = arr_airport.country_id
+                WHERE f.user_id = :user_id_arrival
+                  AND f.departure_date <= CURDATE()
+                  AND arr_country.continent_code IS NOT NULL
+            ) AS visited_continents
+            "
+        );
+        $stmt->execute([
+            'user_id_departure' => $userId,
+            'user_id_arrival' => $userId,
+        ]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    private function flightThresholdEarnedAt(
         int $userId,
         int $threshold
     ): ?string {
@@ -298,10 +582,270 @@ final class AchievementController
         );
     }
 
+    private function distanceThresholdEarnedAt(
+        int $userId,
+        int $threshold
+    ): ?string {
+        $stmt = $this->pdo->prepare(
+            "
+            SELECT
+                departure_date,
+                COALESCE(departure_time, '00:00:00') AS departure_time,
+                COALESCE(distance_km, 0) AS distance_km
+            FROM ml_flights
+            WHERE user_id = :user_id
+              AND departure_date <= CURDATE()
+            ORDER BY
+                departure_date ASC,
+                COALESCE(departure_time, '00:00:00') ASC,
+                id ASC
+            "
+        );
+        $stmt->execute([
+            'user_id' => $userId,
+        ]);
+
+        $distance = 0.0;
+
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $distance += (float) $row['distance_km'];
+
+            if ($distance >= $threshold) {
+                return sprintf(
+                    '%s %s',
+                    (string) $row['departure_date'],
+                    (string) $row['departure_time']
+                );
+            }
+        }
+
+        return null;
+    }
+
+    private function airportThresholdEarnedAt(
+        int $userId,
+        int $threshold
+    ): ?string {
+        $stmt = $this->pdo->prepare(
+            "
+            SELECT
+                departure_date,
+                COALESCE(departure_time, '00:00:00') AS departure_time,
+                departure_airport_id,
+                arrival_airport_id
+            FROM ml_flights
+            WHERE user_id = :user_id
+              AND departure_date <= CURDATE()
+            ORDER BY
+                departure_date ASC,
+                COALESCE(departure_time, '00:00:00') ASC,
+                id ASC
+            "
+        );
+        $stmt->execute([
+            'user_id' => $userId,
+        ]);
+
+        $visited = [];
+
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            if ($row['departure_airport_id'] !== null) {
+                $visited[(int) $row['departure_airport_id']] = true;
+            }
+
+            if ($row['arrival_airport_id'] !== null) {
+                $visited[(int) $row['arrival_airport_id']] = true;
+            }
+
+            if (count($visited) >= $threshold) {
+                return sprintf(
+                    '%s %s',
+                    (string) $row['departure_date'],
+                    (string) $row['departure_time']
+                );
+            }
+        }
+
+        return null;
+    }
+
+    private function countryThresholdEarnedAt(
+        int $userId,
+        int $threshold
+    ): ?string {
+        $stmt = $this->pdo->prepare(
+            "
+            SELECT
+                f.departure_date,
+                COALESCE(f.departure_time, '00:00:00') AS departure_time,
+                dep.country_id AS departure_country_id,
+                arr.country_id AS arrival_country_id
+            FROM ml_flights f
+            JOIN ml_airports dep ON dep.id = f.departure_airport_id
+            JOIN ml_airports arr ON arr.id = f.arrival_airport_id
+            WHERE f.user_id = :user_id
+              AND f.departure_date <= CURDATE()
+            ORDER BY
+                f.departure_date ASC,
+                COALESCE(f.departure_time, '00:00:00') ASC,
+                f.id ASC
+            "
+        );
+        $stmt->execute([
+            'user_id' => $userId,
+        ]);
+
+        $visited = [];
+
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            if ($row['departure_country_id'] !== null) {
+                $visited[(int) $row['departure_country_id']] = true;
+            }
+
+            if ($row['arrival_country_id'] !== null) {
+                $visited[(int) $row['arrival_country_id']] = true;
+            }
+
+            if (count($visited) >= $threshold) {
+                return sprintf(
+                    '%s %s',
+                    (string) $row['departure_date'],
+                    (string) $row['departure_time']
+                );
+            }
+        }
+
+        return null;
+    }
+
+    private function continentThresholdEarnedAt(
+        int $userId,
+        int $threshold
+    ): ?string {
+        $stmt = $this->pdo->prepare(
+            "
+            SELECT
+                f.departure_date,
+                COALESCE(f.departure_time, '00:00:00') AS departure_time,
+                dep_country.continent_code AS departure_continent_code,
+                arr_country.continent_code AS arrival_continent_code
+            FROM ml_flights f
+            LEFT JOIN ml_airports dep_airport ON dep_airport.id = f.departure_airport_id
+            LEFT JOIN ml_countries dep_country ON dep_country.id = dep_airport.country_id
+            LEFT JOIN ml_airports arr_airport ON arr_airport.id = f.arrival_airport_id
+            LEFT JOIN ml_countries arr_country ON arr_country.id = arr_airport.country_id
+            WHERE f.user_id = :user_id
+              AND f.departure_date <= CURDATE()
+            ORDER BY
+                f.departure_date ASC,
+                COALESCE(f.departure_time, '00:00:00') ASC,
+                f.id ASC
+            "
+        );
+        $stmt->execute([
+            'user_id' => $userId,
+        ]);
+
+        $visited = [];
+
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            if ($row['departure_continent_code'] !== null) {
+                $visited[(string) $row['departure_continent_code']] = true;
+            }
+
+            if ($row['arrival_continent_code'] !== null) {
+                $visited[(string) $row['arrival_continent_code']] = true;
+            }
+
+            if (count($visited) >= $threshold) {
+                return sprintf(
+                    '%s %s',
+                    (string) $row['departure_date'],
+                    (string) $row['departure_time']
+                );
+            }
+        }
+
+        return null;
+    }
+
     private function buildState(int $userId): array
     {
-        $completedFlights = $this->completedFlightCount($userId);
+        $flightState = $this->buildFamilyState(
+            $userId,
+            'flights',
+            self::FLIGHT_THRESHOLDS,
+            $this->completedFlightCount($userId)
+        );
 
+        $distanceState = $this->buildFamilyState(
+            $userId,
+            'distance',
+            self::DISTANCE_THRESHOLDS,
+            $this->completedDistanceKm($userId)
+        );
+
+        $airportState = $this->buildFamilyState(
+            $userId,
+            'airports',
+            self::AIRPORT_THRESHOLDS,
+            $this->completedAirportCount($userId)
+        );
+
+        $countryState = $this->buildFamilyState(
+            $userId,
+            'countries',
+            self::COUNTRY_THRESHOLDS,
+            $this->completedCountryCount($userId)
+        );
+
+        $continentState = $this->buildFamilyState(
+            $userId,
+            'continents',
+            self::CONTINENT_THRESHOLDS,
+            $this->completedContinentCount($userId)
+        );
+
+        return [
+            'status' => 'ok',
+            'completed_flights' => $flightState['completed_value'],
+            'achievements' => $flightState['achievements'],
+            'pending_unlocks' => $flightState['pending_unlocks'],
+            'summary' => $flightState['summary'],
+            'distance' => [
+                'completed_distance_km' => $distanceState['completed_value'],
+                'achievements' => $distanceState['achievements'],
+                'pending_unlocks' => $distanceState['pending_unlocks'],
+                'summary' => $distanceState['summary'],
+            ],
+            'airports' => [
+                'completed_airports' => $airportState['completed_value'],
+                'achievements' => $airportState['achievements'],
+                'pending_unlocks' => $airportState['pending_unlocks'],
+                'summary' => $airportState['summary'],
+            ],
+            'countries' => [
+                'completed_countries' => $countryState['completed_value'],
+                'achievements' => $countryState['achievements'],
+                'pending_unlocks' => $countryState['pending_unlocks'],
+                'summary' => $countryState['summary'],
+            ],
+            'continents' => [
+                'completed_continents' => $continentState['completed_value'],
+                'achievements' => $continentState['achievements'],
+                'pending_unlocks' => $continentState['pending_unlocks'],
+                'summary' => $continentState['summary'],
+            ],
+        ];
+    }
+
+    /** @param list<int> $thresholds */
+    private function buildFamilyState(
+        int $userId,
+        string $family,
+        array $thresholds,
+        int $currentValue
+    ): array {
         $stmt = $this->pdo->prepare(
             "
             SELECT
@@ -311,12 +855,13 @@ final class AchievementController
                 notified_at
             FROM ml_user_achievements
             WHERE user_id = :user_id
-              AND family = 'flights'
+              AND family = :family
             ORDER BY threshold_value ASC
             "
         );
         $stmt->execute([
             'user_id' => $userId,
+            'family' => $family,
         ]);
 
         $earnedRows = [];
@@ -331,10 +876,10 @@ final class AchievementController
         $lastEarned = null;
         $pendingUnlocks = [];
 
-        foreach (self::FLIGHT_THRESHOLDS as $threshold) {
+        foreach ($thresholds as $threshold) {
             $row = $earnedRows[$threshold] ?? null;
             $earned = $row !== null;
-            $active = $earned && $completedFlights >= $threshold;
+            $active = $earned && $currentValue >= $threshold;
 
             if ($earned) {
                 $earnedCount++;
@@ -345,8 +890,8 @@ final class AchievementController
             }
 
             $item = [
-                'key' => 'flights_' . $threshold,
-                'family' => 'flights',
+                'key' => $family . '_' . $threshold,
+                'family' => $family,
                 'threshold' => $threshold,
                 'status' => !$earned
                     ? 'locked'
@@ -363,10 +908,7 @@ final class AchievementController
 
             $achievements[] = $item;
 
-            if (
-                $earned &&
-                $row['notified_at'] === null
-            ) {
+            if ($earned && $row['notified_at'] === null) {
                 $pendingUnlocks[] = $item;
             }
 
@@ -377,7 +919,7 @@ final class AchievementController
                     strcmp(
                         (string) $item['earned_at'],
                         (string) $lastEarned['earned_at']
-                    ) > 0
+                    ) >= 0
                 )
             ) {
                 $lastEarned = $item;
@@ -386,16 +928,15 @@ final class AchievementController
 
         $nextThreshold = null;
 
-        foreach (self::FLIGHT_THRESHOLDS as $threshold) {
-            if ($threshold > $completedFlights) {
+        foreach ($thresholds as $threshold) {
+            if ($threshold > $currentValue) {
                 $nextThreshold = $threshold;
                 break;
             }
         }
 
         return [
-            'status' => 'ok',
-            'completed_flights' => $completedFlights,
+            'completed_value' => $currentValue,
             'achievements' => $achievements,
             'pending_unlocks' => $pendingUnlocks,
             'summary' => [
@@ -404,7 +945,7 @@ final class AchievementController
                 'last_earned' => $lastEarned,
                 'next_threshold' => $nextThreshold,
                 'remaining_to_next' => $nextThreshold !== null
-                    ? max(0, $nextThreshold - $completedFlights)
+                    ? max(0, $nextThreshold - $currentValue)
                     : null,
             ],
         ];
