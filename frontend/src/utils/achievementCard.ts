@@ -63,6 +63,8 @@ export async function downloadAchievementCard(
   const isAirports = achievement.family === 'airports'
   const isCountries = achievement.family === 'countries'
   const isContinents = achievement.family === 'continents'
+  const isAirlines = achievement.family === 'airlines'
+  const isAircraft = achievement.family === 'aircraft'
   const formatter = new Intl.NumberFormat('pl-PL')
 
   const background = ctx.createLinearGradient(0, 0, 1080, 1080)
@@ -110,7 +112,11 @@ export async function downloadAchievementCard(
         ? `${formatter.format(achievement.threshold)} PAŃSTW`
         : isContinents
           ? formatContinentLabel(achievement.threshold).toUpperCase()
-          : `${achievement.threshold} LOTÓW`
+          : isAirlines
+            ? `${formatter.format(achievement.threshold)} LINII LOTNICZYCH`
+            : isAircraft
+              ? `${formatter.format(achievement.threshold)} TYPÓW SAMOLOTÓW`
+              : `${achievement.threshold} LOTÓW`
 
   ctx.fillStyle = '#ffffff'
   ctx.font = '800 58px Arial, sans-serif'
@@ -124,7 +130,11 @@ export async function downloadAchievementCard(
         ? 'Kolejny kraj na Twojej mapie świata'
         : isContinents
           ? 'Kolejny kontynent na Twojej mapie świata'
-          : 'Kolejny lotniczy kamień milowy'
+          : isAirlines
+            ? 'Kolejny przewoźnik w Twojej kolekcji'
+            : isAircraft
+              ? 'Kolejny typ samolotu w Twojej kolekcji'
+              : 'Kolejny lotniczy kamień milowy'
 
   ctx.fillStyle = '#c9d8e6'
   ctx.font = '400 25px Arial, sans-serif'
@@ -142,7 +152,11 @@ export async function downloadAchievementCard(
         ? `${formatter.format(completedValue)} odwiedzonych państw`
         : isContinents
           ? `${formatContinentLabel(completedValue)} na Twojej mapie podróży`
-          : `${formatter.format(completedValue)} odbytych lotów w historii`
+          : isAirlines
+            ? `${formatter.format(completedValue)} różnych linii lotniczych`
+            : isAircraft
+              ? `${formatter.format(completedValue)} różnych typów samolotów`
+              : `${formatter.format(completedValue)} odbytych lotów w historii`
 
   ctx.fillStyle = '#a9c2dc'
   ctx.font = '400 20px Arial, sans-serif'
@@ -180,7 +194,11 @@ export async function downloadAchievementCard(
         ? `mapa-lotow-${achievement.threshold}-panstw.${format}`
         : isContinents
           ? `mapa-lotow-${achievement.threshold}-kontynentow.${format}`
-          : `mapa-lotow-${achievement.threshold}-lotow.${format}`
+          : isAirlines
+            ? `mapa-lotow-${achievement.threshold}-linii-lotniczych.${format}`
+            : isAircraft
+              ? `mapa-lotow-${achievement.threshold}-typow-samolotow.${format}`
+              : `mapa-lotow-${achievement.threshold}-lotow.${format}`
 
   downloadBlob(blob, filename)
 }

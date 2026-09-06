@@ -9,6 +9,8 @@ export type AchievementFamily =
   | 'airports'
   | 'countries'
   | 'continents'
+  | 'airlines'
+  | 'aircraft'
 
 export interface AchievementItem {
   key: string
@@ -57,6 +59,43 @@ export interface ContinentAchievementState {
   summary: AchievementSummary
 }
 
+export interface AirlineAchievementState {
+  completed_airlines: number
+  achievements: AchievementItem[]
+  pending_unlocks: AchievementItem[]
+  summary: AchievementSummary
+}
+
+export interface AircraftCollectionAchievementItem {
+  key: string
+  label: string
+  slug: string
+  order: number
+  status: AchievementStatus
+  earned: boolean
+  active: boolean
+  earned_at: string | null
+  notified_at: string | null
+}
+
+export interface AircraftCollectionAchievementState {
+  achievements: AircraftCollectionAchievementItem[]
+  pending_unlocks: AircraftCollectionAchievementItem[]
+  summary: {
+    earned_count: number
+    active_count: number
+    total_count: number
+    last_earned: AircraftCollectionAchievementItem | null
+  }
+}
+
+export interface AircraftAchievementState {
+  completed_aircraft_types: number
+  achievements: AchievementItem[]
+  pending_unlocks: AchievementItem[]
+  summary: AchievementSummary
+}
+
 export interface AchievementsResponse {
   status: 'ok'
   completed_flights: number
@@ -67,9 +106,13 @@ export interface AchievementsResponse {
   airports: AirportAchievementState
   countries: CountryAchievementState
   continents: ContinentAchievementState
+  airlines: AirlineAchievementState
+  aircraft: AircraftAchievementState
+  aircraft_manufacturers: AircraftCollectionAchievementState
+  aircraft_origins: AircraftCollectionAchievementState
+  aircraft_unique: AircraftCollectionAchievementState
 }
 
-export interface AchievementSyncResponse
-  extends AchievementsResponse {
-  newly_earned: AchievementItem[]
+export interface AchievementSyncResponse extends AchievementsResponse {
+  newly_earned: (AchievementItem | AircraftCollectionAchievementItem)[]
 }

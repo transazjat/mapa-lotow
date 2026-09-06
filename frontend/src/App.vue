@@ -85,6 +85,7 @@ import type {
 
 import type {
   AchievementItem,
+  AircraftCollectionAchievementItem,
 } from './types/achievement'
 
 setWorkerUrl(
@@ -1026,8 +1027,10 @@ const accountToken =
 const achievementsOpen =
   ref(false)
 
+type AchievementUnlockItem = AchievementItem | AircraftCollectionAchievementItem
+
 const achievementUnlocks =
-  ref<AchievementItem[]>([])
+  ref<AchievementUnlockItem[]>([])
 
 const achievementCompletedFlights =
   ref(0)
@@ -2489,12 +2492,21 @@ async function syncFlightAchievements(): Promise<void> {
     achievementCompletedFlights.value =
       state.completed_flights
 
-    if (
-      state.pending_unlocks.length >
-        0
-    ) {
-      achievementUnlocks.value =
-        state.pending_unlocks
+    const pendingUnlocks: AchievementUnlockItem[] = [
+      ...state.pending_unlocks,
+      ...state.distance.pending_unlocks,
+      ...state.airports.pending_unlocks,
+      ...state.countries.pending_unlocks,
+      ...state.continents.pending_unlocks,
+      ...state.airlines.pending_unlocks,
+      ...state.aircraft.pending_unlocks,
+      ...state.aircraft_manufacturers.pending_unlocks,
+      ...state.aircraft_origins.pending_unlocks,
+      ...state.aircraft_unique.pending_unlocks,
+    ]
+
+    if (pendingUnlocks.length > 0) {
+      achievementUnlocks.value = pendingUnlocks
     }
   } catch (error) {
     console.warn(

@@ -704,6 +704,31 @@
   outline-offset: 4px;
 }
 
+
+/* Pochodzenie i Unikalne maszyny mają pionowe / kartowe grafiki.
+   Wyświetlamy je w naturalnych proporcjach, bez okrągłego kadrowania. */
+.achievement-detail-badge-stage--natural {
+  width: min(240px, 88%);
+  aspect-ratio: auto;
+  min-height: 0;
+  border-radius: 0;
+  background: transparent;
+  filter: none;
+}
+
+.achievement-detail-badge-stage--portrait {
+  width: min(210px, 82%);
+}
+
+.achievement-detail-card__badge--natural {
+  width: 100%;
+  height: auto;
+  max-height: 320px;
+  object-fit: contain;
+  clip-path: none;
+  filter: drop-shadow(0 12px 18px rgba(31, 60, 87, 0.15));
+}
+
 .achievement-badge-preview {
   position: fixed;
   inset: 0;
@@ -1181,4 +1206,392 @@
     justify-content: center;
     text-align: center;
   }
+}
+
+
+/* Typy samolotów: wewnętrzne sub-działy */
+.aircraft-achievement-tabs {
+  display: flex;
+  gap: 8px;
+  margin: 2px 0 18px;
+  padding: 4px;
+  width: fit-content;
+  max-width: 100%;
+  border: 1px solid #d7e2ed;
+  border-radius: 12px;
+  background: #f5f8fb;
+}
+
+.aircraft-achievement-tabs__item {
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #58708a;
+  padding: 9px 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background .16s ease, color .16s ease, box-shadow .16s ease;
+}
+
+.aircraft-achievement-tabs__item:hover {
+  color: #173f70;
+  background: #eaf1f7;
+}
+
+.aircraft-achievement-tabs__item.is-active {
+  color: #17324f;
+  background: #f2c230;
+  box-shadow: 0 3px 12px rgba(213, 164, 15, .28);
+}
+
+.aircraft-subsection-placeholder {
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 48px 32px;
+  border: 1px dashed #cbd9e6;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #fbfdff 0%, #f4f8fb 100%);
+  color: #5e748b;
+}
+
+.aircraft-subsection-placeholder__icon {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 14px;
+  color: #547ba1;
+}
+
+.aircraft-subsection-placeholder__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.aircraft-subsection-placeholder h3 {
+  margin: 0 0 8px;
+  color: #173f70;
+  font-size: 20px;
+}
+
+.aircraft-subsection-placeholder p {
+  max-width: 590px;
+  margin: 0 0 12px;
+  line-height: 1.55;
+}
+
+.aircraft-subsection-placeholder span {
+  font-size: 12px;
+  color: #8da0b2;
+}
+
+@media (max-width: 760px) {
+  .aircraft-achievement-tabs {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .aircraft-achievement-tabs__item {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+}
+
+
+/* Typy samolotów: producenci i rodziny */
+.aircraft-manufacturer-section,
+.aircraft-collection-section {
+  display: grid;
+  gap: 16px;
+}
+
+.aircraft-manufacturer-workspace,
+.aircraft-collection-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 18px;
+  align-items: start;
+}
+
+.aircraft-manufacturer-grid,
+.aircraft-collection-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.aircraft-manufacturer-card,
+.aircraft-collection-card {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 10px 8px 9px;
+  border: 1px solid #d7e2ed;
+  border-radius: 14px;
+  background: rgba(255,255,255,.92);
+  color: #173f70;
+  font: inherit;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(34, 78, 116, .06);
+  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+
+.aircraft-manufacturer-card,
+.aircraft-collection-card:hover,
+.aircraft-manufacturer-card,
+.aircraft-collection-card.is-selected {
+  transform: translateY(-2px);
+  border-color: #d8ae28;
+  box-shadow: 0 7px 18px rgba(34, 78, 116, .12);
+}
+
+.aircraft-manufacturer-card,
+.aircraft-collection-card img {
+  width: 100%;
+  max-width: 152px;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+}
+
+.aircraft-manufacturer-card,
+.aircraft-collection-card strong {
+  font-size: 12px;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.aircraft-manufacturer-card,
+.aircraft-collection-card span {
+  color: #8496a8;
+  font-size: 10px;
+}
+
+.aircraft-manufacturer-card,
+.aircraft-collection-card.active span {
+  color: #16815a;
+  font-weight: 700;
+}
+
+.aircraft-manufacturer-detail {
+  position: sticky;
+  top: 0;
+  display: grid;
+  justify-items: center;
+  padding: 16px 16px 18px;
+  border: 1px solid #d7e2ed;
+  border-radius: 16px;
+  background: rgba(255,255,255,.96);
+  box-shadow: 0 7px 20px rgba(34, 78, 116, .08);
+  text-align: center;
+}
+
+.aircraft-manufacturer-detail__status {
+  justify-self: end;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #eef3f7;
+  color: #7a8ea2;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.aircraft-manufacturer-detail__status.active {
+  background: #e5f7ed;
+  color: #17805a;
+}
+
+.aircraft-manufacturer-detail img {
+  width: min(240px, 100%);
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+}
+
+.aircraft-manufacturer-detail h3 {
+  margin: 4px 0 8px;
+  color: #10396e;
+  font-size: 22px;
+}
+
+.aircraft-manufacturer-detail p {
+  margin: 0;
+  color: #6f8498;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.aircraft-manufacturer-detail__meta,
+.aircraft-collection-detail__meta {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #dbe5ed;
+  text-align: left;
+}
+
+.aircraft-manufacturer-detail__meta,
+.aircraft-collection-detail__meta span {
+  color: #8b9caf;
+  font-size: 9px;
+}
+
+.aircraft-manufacturer-detail__meta,
+.aircraft-collection-detail__meta strong {
+  color: #315b86;
+  font-size: 12px;
+}
+
+@media (max-width: 1050px) {
+  .aircraft-manufacturer-workspace,
+.aircraft-collection-workspace { grid-template-columns: 1fr; }
+  .aircraft-manufacturer-detail { position: static; }
+}
+
+@media (max-width: 760px) {
+  .aircraft-manufacturer-grid,
+.aircraft-collection-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* Aircraft manufacturers: detail panel aligned with the standard achievement detail functionality. */
+.aircraft-manufacturer-detail-panel,
+.aircraft-collection-detail-panel {
+  position: sticky;
+  top: 0;
+  align-self: start;
+}
+
+.aircraft-manufacturer-detail-panel,
+.aircraft-collection-detail-panel__badge {
+  object-fit: contain;
+}
+
+.aircraft-manufacturer-detail-panel,
+.aircraft-collection-detail-panel__meta {
+  grid-template-columns: 1fr;
+}
+
+@media (max-width: 1120px) {
+  .aircraft-manufacturer-detail-panel,
+.aircraft-collection-detail-panel {
+    position: static;
+  }
+}
+
+/* Typy samolotów: unikalne maszyny */
+.aircraft-unique-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.aircraft-unique-card img {
+  width: 100%;
+  max-width: 150px;
+  aspect-ratio: 3 / 4;
+  object-fit: contain;
+}
+
+.aircraft-unique-card strong {
+  min-height: 2.4em;
+}
+
+.aircraft-unique-detail-panel__badge {
+  width: min(220px, 100%);
+  max-height: 300px;
+  aspect-ratio: auto;
+  object-fit: contain;
+}
+
+.aircraft-unique-detail-panel__character {
+  color: #45647f;
+  font-weight: 650;
+}
+
+.aircraft-unique-detail-panel__history {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px 13px;
+  border: 1px solid #dce6ef;
+  border-radius: 11px;
+  background: #f7fafc;
+  text-align: left;
+}
+
+.aircraft-unique-detail-panel__history strong {
+  display: block;
+  margin-bottom: 5px;
+  color: #173f70;
+  font-size: 11px;
+  letter-spacing: .02em;
+}
+
+.aircraft-unique-detail-panel__history p {
+  margin: 0;
+  color: #657d93;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+@media (max-width: 760px) {
+  .aircraft-unique-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+
+/* v1.3 - Pochodzenie + Unikalne maszyny:
+   osobny kontener dla pionowych kart, całkowicie niezależny od
+   .achievement-detail-badge-stage i jego okrągłego tła / clip-path. */
+.aircraft-portrait-badge-stage {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  width: min(220px, 86%);
+  min-width: 0;
+  height: auto;
+  max-height: 340px;
+  align-items: center;
+  justify-content: center;
+  margin: 18px auto 6px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+  background: transparent;
+  box-shadow: none;
+  filter: none;
+}
+
+.aircraft-portrait-badge-stage--clickable {
+  color: inherit;
+  font: inherit;
+  cursor: zoom-in;
+}
+
+.aircraft-portrait-badge-stage--clickable:focus-visible {
+  outline: 3px solid rgba(46, 127, 202, 0.34);
+  outline-offset: 4px;
+}
+
+.aircraft-portrait-badge-image {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 330px;
+  margin: 0 auto;
+  object-fit: contain;
+  border-radius: 0;
+  clip-path: none !important;
+  -webkit-clip-path: none !important;
+  background: transparent;
+  box-shadow: none;
+  filter: drop-shadow(0 12px 18px rgba(31, 60, 87, 0.15));
 }

@@ -1,0 +1,147 @@
+import type { AircraftCollectionAchievementItem } from '../types/achievement'
+import {
+  getAircraftManufacturerBadgeImage,
+  getAircraftOriginBadgeImage,
+  getAircraftUniqueBadgeImage,
+} from './achievementBadges'
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image()
+    image.onload = () => resolve(image)
+    image.onerror = () => reject(new Error('Nie udało się wczytać grafiki odznaki.'))
+    image.src = src
+  })
+}
+
+function downloadBlob(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
+function safeSlug(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+function getBadgeSource(kind: 'manufacturer' | 'origin' | 'unique', slug: string): string | null {
+  if (kind === 'manufacturer') return getAircraftManufacturerBadgeImage(slug)
+  if (kind === 'origin') return getAircraftOriginBadgeImage(slug)
+  return getAircraftUniqueBadgeImage(slug)
+}
+
+export async function downloadAircraftCollectionCard(
+  achievement: AircraftCollectionAchievementItem,
+  kind: 'manufacturer' | 'origin' | 'unique',
+  nick: string,
+  description: string,
+  format: 'png' | 'jpg',
+): Promise<void> {
+  const badgeSrc = getBadgeSource(kind, achievement.slug)
+  if (!badgeSrc) throw new Error('Brak grafiki tej odznaki.')
+
+  const badge = await loadImage(badgeSrc)
+  const canvas = document.createElement('canvas')
+  canvas.width = 1080
+  canvas.height = 1080
+
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('Przeglądarka nie obsługuje generowania karty.')
+
+  const background = ctx.createLinearGradient(0, 0, 1080, 1080)
+  background.addColorStop(0, '#061f42')
+  background.addColorStop(0.55, '#0b3b70')
+  background.addColorStop(1, '#0b274f')
+  ctx.fillStyle = background
+  ctx.fillRect(0, 0, 1080, 1080)
+
+  ctx.globalAlpha = 0.09
+  ctx.strokeStyle = '#ffffff'
+  ctx.lineWidth = 2
+  for (let r = 210; r <= 760; r += 92) {
+    ctx.beginPath()
+    ctx.arc(540, 470, r, 0, Math.PI * 2)
+    ctx.stroke()
+  }
+  ctx.globalAlpha = 1
+
+  ctx.fillStyle = '#ffffff'
+  ctx.textAlign = 'center'
+  ctx.font = '700 32px Arial, sans-serif'
+  ctx.fillText('MAPA LOTÓW', 540, 68)
+  ctx.fillStyle = '#a9c2dc'
+  ctx.font = '500 19px Arial, sans-serif'
+  ctx.fillText(
+    kind === 'manufacturer'
+      ? 'PRODUCENCI · ODZNAKA PRODUCENTA'
+      : kind === 'origin'
+        ? 'POCHODZENIE · ODZNAKA SZKOŁY LOTNICZEJ'
+        : 'UNIKALNE MASZYNY · ODZNAKA SPECJALNA',
+    540,
+    104,
+  )
+
+  const maxBadgeWidth = 660
+  const maxBadgeHeight = 620
+  const scale = Math.min(maxBadgeWidth / badge.naturalWidth, maxBadgeHeight / badge.naturalHeight)
+  const drawWidth = badge.naturalWidth * scale
+  const drawHeight = badge.naturalHeight * scale
+  ctx.drawImage(badge, (1080 - drawWidth) / 2, 135 + (maxBadgeHeight - drawHeight) / 2, drawWidth, drawHeight)
+
+  ctx.fillStyle = '#ffffff'
+  ctx.font = '800 58px Arial, sans-serif'
+  ctx.fillText(achievement.label.toUpperCase(), 540, 820)
+
+  ctx.fillStyle = '#c9d8e6'
+  ctx.font = '400 22px Arial, sans-serif'
+  const shortDescription = description.length > 105 ? `${description.slice(0, 102)}…` : description
+  ctx.fillText(shortDescription, 540, 862)
+
+  ctx.fillStyle = '#ffffff'
+  ctx.font = '600 24px Arial, sans-serif'
+  ctx.fillText(nick || 'Podróżnik Mapy Lotów', 540, 925)
+
+  ctx.fillStyle = '#a9c2dc'
+  ctx.font = '400 19px Arial, sans-serif'
+  ctx.fillText(
+    kind === 'manufacturer'
+      ? 'Pierwszy lot tym producentem odblokował tę odznakę'
+      : kind === 'origin'
+        ? 'Pierwszy lot maszyną tej szkoły odblokował tę odznakę'
+        : 'Pierwszy lot tą unikalną maszyną odblokował tę odznakę',
+    540,
+    962,
+  )
+
+  ctx.strokeStyle = 'rgba(255,255,255,.22)'
+  ctx.beginPath()
+  ctx.moveTo(210, 994)
+  ctx.lineTo(870, 994)
+  ctx.stroke()
+
+  ctx.fillStyle = '#d5e1ec'
+  ctx.font = '400 16px Arial, sans-serif'
+  ctx.fillText('mapalotow.pl', 540, 1030)
+
+  const mime = format === 'png' ? 'image/png' : 'image/jpeg'
+  const quality = format === 'png' ? undefined : 0.94
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (result) => result ? resolve(result) : reject(new Error('Nie udało się wygenerować karty.')),
+      mime,
+      quality,
+    )
+  })
+
+  downloadBlob(blob, `mapa-lotow-${kind}-${safeSlug(achievement.label)}.${format}`)
+}
