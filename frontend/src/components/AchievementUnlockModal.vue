@@ -44,6 +44,13 @@ function itemLabel(item: UnlockItem): string {
   if (item.family === 'continents') return `${item.threshold} kontynentów`
   if (item.family === 'airlines') return `${item.threshold} linii lotniczych`
   if (item.family === 'aircraft') return `${item.threshold} typów samolotów`
+  if (item.family === 'routes') return `${item.threshold} tras`
+  if (item.family === 'duration') return `${item.threshold} h w powietrzu`
+  if (item.family === 'astronomical') return `${item.threshold.toLocaleString('pl-PL')} km`
+  if (item.family === 'intensity_year') return `${item.threshold} lotów w roku`
+  if (item.family === 'intensity_month') return `${item.threshold} lotów w miesiącu`
+  if (item.family === 'intensity_streak') return `${item.threshold} dni serii`
+  if (item.family === 'intensity_day') return `${item.threshold} lotów jednego dnia`
   return `${item.threshold} lotów`
 }
 
@@ -55,6 +62,10 @@ function itemDescription(item: UnlockItem): string {
     if (item.family === 'continents') return 'Twoja mapa podróży objęła kolejny próg liczby kontynentów.'
     if (item.family === 'airlines') return 'Twoja kolekcja przewoźników przekroczyła kolejny próg.'
     if (item.family === 'aircraft') return 'Twoja kolekcja typów samolotów przekroczyła kolejny próg.'
+    if (item.family === 'routes') return 'Twoja sieć lotniczych połączeń przekroczyła kolejny próg liczby różnych tras.'
+    if (item.family === 'duration') return 'Łączny czas Twoich odbytych lotów przekroczył kolejny próg godzin spędzonych w powietrzu.'
+    if (item.family === 'astronomical') return 'Twój łączny dystans lotniczy przekroczył kolejny kosmiczny próg porównawczy.'
+    if (item.family.startsWith('intensity_')) return 'Osiągnąłeś nowy próg intensywności w swojej historii lotów.'
     return 'Osiągnąłeś kolejny lotniczy kamień milowy.'
   }
 

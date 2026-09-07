@@ -11,6 +11,13 @@ export type AchievementFamily =
   | 'continents'
   | 'airlines'
   | 'aircraft'
+  | 'routes'
+  | 'duration'
+  | 'astronomical'
+  | 'intensity_year'
+  | 'intensity_month'
+  | 'intensity_streak'
+  | 'intensity_day'
 
 export interface AchievementItem {
   key: string
@@ -96,6 +103,51 @@ export interface AircraftAchievementState {
   summary: AchievementSummary
 }
 
+export interface RouteAchievementState {
+  completed_routes: number
+  achievements: AchievementItem[]
+  pending_unlocks: AchievementItem[]
+  summary: AchievementSummary
+}
+
+export interface DurationAchievementState {
+  completed_hours: number
+  achievements: AchievementItem[]
+  pending_unlocks: AchievementItem[]
+  summary: AchievementSummary
+}
+
+
+export interface AstronomicalAchievementState {
+  completed_distance_km: number
+  achievements: AchievementItem[]
+  pending_unlocks: AchievementItem[]
+  summary: AchievementSummary
+}
+
+
+export interface IntensityRecord {
+  value: number
+  label: string
+  start_date: string | null
+  end_date: string | null
+}
+
+export interface IntensitySubState {
+  completed_value: number
+  achievements: AchievementItem[]
+  pending_unlocks: AchievementItem[]
+  summary: AchievementSummary
+  record: IntensityRecord
+}
+
+export interface IntensityAchievementState {
+  year: IntensitySubState
+  month: IntensitySubState
+  streak: IntensitySubState
+  day: IntensitySubState
+}
+
 export interface AchievementsResponse {
   status: 'ok'
   completed_flights: number
@@ -108,6 +160,10 @@ export interface AchievementsResponse {
   continents: ContinentAchievementState
   airlines: AirlineAchievementState
   aircraft: AircraftAchievementState
+  routes: RouteAchievementState
+  duration: DurationAchievementState
+  astronomical: AstronomicalAchievementState
+  intensity: IntensityAchievementState
   aircraft_manufacturers: AircraftCollectionAchievementState
   aircraft_origins: AircraftCollectionAchievementState
   aircraft_unique: AircraftCollectionAchievementState

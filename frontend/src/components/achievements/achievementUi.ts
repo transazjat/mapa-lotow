@@ -21,12 +21,12 @@ export const achievementIcons = {
 
 export const achievementFamilies = [
   { key: 'flights', label: 'Loty', description: 'Twoje osiągnięcia', icon: achievementIcons.flights },
+  { key: 'aircraft', label: 'Typy samolotów', description: 'Flota w powietrzu', icon: achievementIcons.aircraft },
   { key: 'distance', label: 'Dystans', description: 'Twoje kilometry', icon: achievementIcons.distance },
   { key: 'airports', label: 'Lotniska', description: 'Odwiedzone miejsca', icon: achievementIcons.airports },
   { key: 'countries', label: 'Państwa', description: 'Odkryte kraje', icon: achievementIcons.countries },
   { key: 'continents', label: 'Kontynenty', description: 'Zwiedzony świat', icon: achievementIcons.continents },
   { key: 'airlines', label: 'Linie lotnicze', description: 'Twoje linie', icon: achievementIcons.airlines },
-  { key: 'aircraft', label: 'Typy samolotów', description: 'Flota w powietrzu', icon: achievementIcons.aircraft },
   { key: 'routes', label: 'Trasy', description: 'Twoje ścieżki', icon: achievementIcons.routes },
   { key: 'intensity', label: 'Intensywność', description: 'Poziom aktywności', icon: achievementIcons.intensity },
   { key: 'duration', label: 'Czas w powietrzu', description: 'Godziny w chmurach', icon: achievementIcons.duration },

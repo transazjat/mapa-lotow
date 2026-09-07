@@ -99,6 +99,50 @@ final class AchievementController
         100,
     ];
 
+    private const ROUTE_THRESHOLDS = [
+        10,
+        25,
+        50,
+        75,
+        100,
+        150,
+        200,
+        250,
+        300,
+        500,
+    ];
+
+    private const DURATION_THRESHOLDS = [
+        24,
+        100,
+        250,
+        500,
+        750,
+        1000,
+        1250,
+        1500,
+        2000,
+        2500,
+    ];
+
+    private const ASTRONOMICAL_THRESHOLDS = [
+        40075,
+        200375,
+        299792,
+        384400,
+        768800,
+        1000000,
+        1153200,
+        1922000,
+        2997925,
+        3844000,
+    ];
+
+    private const INTENSITY_YEAR_THRESHOLDS = [10, 20, 30, 40, 50, 60, 75, 100, 125, 150];
+    private const INTENSITY_MONTH_THRESHOLDS = [4, 6, 8, 10, 12, 15, 18, 22, 26, 30];
+    private const INTENSITY_STREAK_THRESHOLDS = [2, 3, 4, 5, 6, 7, 10, 14, 21, 30];
+    private const INTENSITY_DAY_THRESHOLDS = [2, 3, 4, 5, 6, 7, 8, 10, 12, 15];
+
 
     private const AIRCRAFT_MANUFACTURERS = [
         ['slug' => 'airbus', 'label' => 'Airbus', 'manufacturers' => ['Airbus'], 'order' => 1],
@@ -204,6 +248,13 @@ final class AchievementController
             ...$state['continents']['achievements'],
             ...$state['airlines']['achievements'],
             ...$state['aircraft']['achievements'],
+            ...$state['routes']['achievements'],
+            ...$state['duration']['achievements'],
+            ...$state['astronomical']['achievements'],
+            ...$state['intensity']['year']['achievements'],
+            ...$state['intensity']['month']['achievements'],
+            ...$state['intensity']['streak']['achievements'],
+            ...$state['intensity']['day']['achievements'],
             ...$state['aircraft_manufacturers']['achievements'],
             ...$state['aircraft_origins']['achievements'],
             ...$state['aircraft_unique']['achievements'],
@@ -282,6 +333,31 @@ final class AchievementController
             $allowedKeys['aircraft_' . $threshold] = true;
         }
 
+        foreach (self::ROUTE_THRESHOLDS as $threshold) {
+            $allowedKeys['routes_' . $threshold] = true;
+        }
+
+        foreach (self::DURATION_THRESHOLDS as $threshold) {
+            $allowedKeys['duration_' . $threshold] = true;
+        }
+
+        foreach (self::ASTRONOMICAL_THRESHOLDS as $threshold) {
+            $allowedKeys['astronomical_' . $threshold] = true;
+        }
+
+        foreach (self::INTENSITY_YEAR_THRESHOLDS as $threshold) {
+            $allowedKeys['intensity_year_' . $threshold] = true;
+        }
+        foreach (self::INTENSITY_MONTH_THRESHOLDS as $threshold) {
+            $allowedKeys['intensity_month_' . $threshold] = true;
+        }
+        foreach (self::INTENSITY_STREAK_THRESHOLDS as $threshold) {
+            $allowedKeys['intensity_streak_' . $threshold] = true;
+        }
+        foreach (self::INTENSITY_DAY_THRESHOLDS as $threshold) {
+            $allowedKeys['intensity_day_' . $threshold] = true;
+        }
+
         foreach (self::AIRCRAFT_MANUFACTURERS as $definition) {
             $allowedKeys['aircraft_manufacturer_' . $definition['slug']] = true;
         }
@@ -349,6 +425,13 @@ final class AchievementController
             ...$this->syncContinentAchievements($userId),
             ...$this->syncAirlineAchievements($userId),
             ...$this->syncAircraftAchievements($userId),
+            ...$this->syncRouteAchievements($userId),
+            ...$this->syncDurationAchievements($userId),
+            ...$this->syncAstronomicalAchievements($userId),
+            ...$this->syncIntensityYearAchievements($userId),
+            ...$this->syncIntensityMonthAchievements($userId),
+            ...$this->syncIntensityStreakAchievements($userId),
+            ...$this->syncIntensityDayAchievements($userId),
             ...$this->syncAircraftManufacturerAchievements($userId),
             ...$this->syncAircraftOriginAchievements($userId),
             ...$this->syncAircraftUniqueAchievements($userId),
@@ -473,6 +556,109 @@ final class AchievementController
                 $userId,
                 $threshold
             )
+        );
+    }
+
+    /** @return list<string> */
+    private function syncRouteAchievements(int $userId): array
+    {
+        $completedRoutes = $this->completedRouteCount($userId);
+
+        return $this->syncFamilyAchievements(
+            $userId,
+            'routes',
+            self::ROUTE_THRESHOLDS,
+            $completedRoutes,
+            fn(int $threshold): ?string => $this->routeThresholdEarnedAt(
+                $userId,
+                $threshold
+            )
+        );
+    }
+
+    /** @return list<string> */
+    private function syncDurationAchievements(int $userId): array
+    {
+        $completedHours = $this->completedDurationHours($userId);
+
+        return $this->syncFamilyAchievements(
+            $userId,
+            'duration',
+            self::DURATION_THRESHOLDS,
+            $completedHours,
+            fn(int $threshold): ?string => $this->durationThresholdEarnedAt(
+                $userId,
+                $threshold
+            )
+        );
+    }
+
+    /** @return list<string> */
+    private function syncAstronomicalAchievements(int $userId): array
+    {
+        $completedDistance = $this->completedDistanceKm($userId);
+
+        return $this->syncFamilyAchievements(
+            $userId,
+            'astronomical',
+            self::ASTRONOMICAL_THRESHOLDS,
+            $completedDistance,
+            fn(int $threshold): ?string => $this->distanceThresholdEarnedAt(
+                $userId,
+                $threshold
+            )
+        );
+    }
+
+    /** @return list<string> */
+    private function syncIntensityYearAchievements(int $userId): array
+    {
+        $record = $this->intensityYearRecord($userId);
+        return $this->syncFamilyAchievements(
+            $userId,
+            'intensity_year',
+            self::INTENSITY_YEAR_THRESHOLDS,
+            $record['value'],
+            fn(int $threshold): ?string => $this->intensityThresholdEarnedAt($userId, 'year', $threshold)
+        );
+    }
+
+    /** @return list<string> */
+    private function syncIntensityMonthAchievements(int $userId): array
+    {
+        $record = $this->intensityMonthRecord($userId);
+        return $this->syncFamilyAchievements(
+            $userId,
+            'intensity_month',
+            self::INTENSITY_MONTH_THRESHOLDS,
+            $record['value'],
+            fn(int $threshold): ?string => $this->intensityThresholdEarnedAt($userId, 'month', $threshold)
+        );
+    }
+
+    /** @return list<string> */
+    private function syncIntensityStreakAchievements(int $userId): array
+    {
+        $record = $this->intensityStreakRecord($userId);
+        return $this->syncFamilyAchievements(
+            $userId,
+            'intensity_streak',
+            self::INTENSITY_STREAK_THRESHOLDS,
+            $record['value'],
+            fn(int $threshold): ?string => $this->intensityStreakThresholdEarnedAt($userId, $threshold)
+        );
+    }
+
+    /** @return list<string> */
+    private function syncIntensityDayAchievements(int $userId): array
+    {
+        $record = $this->intensityDayRecord($userId);
+        return $this->syncFamilyAchievements(
+            $userId,
+            'intensity_day',
+            self::INTENSITY_DAY_THRESHOLDS,
+            $record['value'],
+            fn(int $threshold): ?string => $this->intensityThresholdEarnedAt($userId, 'day', $threshold)
         );
     }
 
@@ -739,6 +925,96 @@ final class AchievementController
         return $newKeys;
     }
 
+    /** @return array{value:int,label:string,start_date:?string,end_date:?string} */
+    private function intensityYearRecord(int $userId): array
+    {
+        $stmt = $this->pdo->prepare("SELECT YEAR(departure_date) AS period, COUNT(*) AS total FROM ml_flights WHERE user_id = :user_id AND departure_date <= CURDATE() GROUP BY YEAR(departure_date) ORDER BY total DESC, period DESC LIMIT 1");
+        $stmt->execute(['user_id' => $userId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) return ['value' => 0, 'label' => '—', 'start_date' => null, 'end_date' => null];
+        $year = (string) $row['period'];
+        return ['value' => (int) $row['total'], 'label' => $year, 'start_date' => $year . '-01-01', 'end_date' => $year . '-12-31'];
+    }
+
+    /** @return array{value:int,label:string,start_date:?string,end_date:?string} */
+    private function intensityMonthRecord(int $userId): array
+    {
+        $stmt = $this->pdo->prepare("SELECT DATE_FORMAT(departure_date, '%Y-%m') AS period, COUNT(*) AS total FROM ml_flights WHERE user_id = :user_id AND departure_date <= CURDATE() GROUP BY DATE_FORMAT(departure_date, '%Y-%m') ORDER BY total DESC, period DESC LIMIT 1");
+        $stmt->execute(['user_id' => $userId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) return ['value' => 0, 'label' => '—', 'start_date' => null, 'end_date' => null];
+        $period = (string) $row['period'];
+        $start = $period . '-01';
+        $end = date('Y-m-t', strtotime($start));
+        return ['value' => (int) $row['total'], 'label' => $period, 'start_date' => $start, 'end_date' => $end];
+    }
+
+    /** @return array{value:int,label:string,start_date:?string,end_date:?string} */
+    private function intensityDayRecord(int $userId): array
+    {
+        $stmt = $this->pdo->prepare("SELECT departure_date AS period, COUNT(*) AS total FROM ml_flights WHERE user_id = :user_id AND departure_date <= CURDATE() GROUP BY departure_date ORDER BY total DESC, period DESC LIMIT 1");
+        $stmt->execute(['user_id' => $userId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) return ['value' => 0, 'label' => '—', 'start_date' => null, 'end_date' => null];
+        $date = (string) $row['period'];
+        return ['value' => (int) $row['total'], 'label' => $date, 'start_date' => $date, 'end_date' => $date];
+    }
+
+    /** @return array{value:int,label:string,start_date:?string,end_date:?string} */
+    private function intensityStreakRecord(int $userId): array
+    {
+        $stmt = $this->pdo->prepare("SELECT DISTINCT departure_date FROM ml_flights WHERE user_id = :user_id AND departure_date <= CURDATE() ORDER BY departure_date ASC");
+        $stmt->execute(['user_id' => $userId]);
+        $dates = array_map(static fn(array $row): string => (string) $row['departure_date'], $stmt->fetchAll(PDO::FETCH_ASSOC));
+        if ($dates === []) return ['value' => 0, 'label' => '—', 'start_date' => null, 'end_date' => null];
+
+        $best = 1; $current = 1; $bestStart = $dates[0]; $bestEnd = $dates[0]; $currentStart = $dates[0];
+        for ($i = 1, $count = count($dates); $i < $count; $i++) {
+            $prev = new \DateTimeImmutable($dates[$i - 1]);
+            $curr = new \DateTimeImmutable($dates[$i]);
+            if ($prev->modify('+1 day')->format('Y-m-d') === $curr->format('Y-m-d')) {
+                $current++;
+            } else {
+                $current = 1;
+                $currentStart = $dates[$i];
+            }
+            if ($current >= $best) {
+                $best = $current;
+                $bestStart = $currentStart;
+                $bestEnd = $dates[$i];
+            }
+        }
+        return ['value' => $best, 'label' => $bestStart . ' – ' . $bestEnd, 'start_date' => $bestStart, 'end_date' => $bestEnd];
+    }
+
+    private function intensityThresholdEarnedAt(int $userId, string $period, int $threshold): ?string
+    {
+        $format = $period === 'year' ? '%Y' : ($period === 'month' ? '%Y-%m' : '%Y-%m-%d');
+        $stmt = $this->pdo->prepare("SELECT departure_date, COALESCE(departure_time, '00:00:00') AS departure_time FROM ml_flights WHERE user_id = :user_id AND departure_date <= CURDATE() ORDER BY departure_date ASC, COALESCE(departure_time, '00:00:00') ASC, id ASC");
+        $stmt->execute(['user_id' => $userId]);
+        $counts = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $key = date($period === 'year' ? 'Y' : ($period === 'month' ? 'Y-m' : 'Y-m-d'), strtotime((string) $row['departure_date']));
+            $counts[$key] = ($counts[$key] ?? 0) + 1;
+            if ($counts[$key] === $threshold) return (string) $row['departure_date'] . ' ' . (string) $row['departure_time'];
+        }
+        return null;
+    }
+
+    private function intensityStreakThresholdEarnedAt(int $userId, int $threshold): ?string
+    {
+        $stmt = $this->pdo->prepare("SELECT departure_date, MIN(COALESCE(departure_time, '00:00:00')) AS departure_time FROM ml_flights WHERE user_id = :user_id AND departure_date <= CURDATE() GROUP BY departure_date ORDER BY departure_date ASC");
+        $stmt->execute(['user_id' => $userId]);
+        $previous = null; $streak = 0;
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $date = (string) $row['departure_date'];
+            if ($previous !== null && (new \DateTimeImmutable($previous))->modify('+1 day')->format('Y-m-d') === $date) $streak++; else $streak = 1;
+            if ($streak >= $threshold) return $date . ' ' . (string) $row['departure_time'];
+            $previous = $date;
+        }
+        return null;
+    }
+
     private function completedFlightCount(int $userId): int
     {
         $stmt = $this->pdo->prepare(
@@ -771,6 +1047,23 @@ final class AchievementController
         ]);
 
         return (int) floor((float) $stmt->fetchColumn());
+    }
+
+    private function completedDurationHours(int $userId): int
+    {
+        $stmt = $this->pdo->prepare(
+            "
+            SELECT COALESCE(SUM(COALESCE(duration_seconds, 0)), 0)
+            FROM ml_flights
+            WHERE user_id = :user_id
+              AND departure_date <= CURDATE()
+            "
+        );
+        $stmt->execute([
+            'user_id' => $userId,
+        ]);
+
+        return (int) floor(((int) $stmt->fetchColumn()) / 3600);
     }
 
     private function completedAirportCount(int $userId): int
@@ -898,6 +1191,113 @@ final class AchievementController
         ]);
 
         return (int) $stmt->fetchColumn();
+    }
+
+    private function completedRouteCount(int $userId): int
+    {
+        $stmt = $this->pdo->prepare(
+            "
+            SELECT COUNT(*)
+            FROM (
+                SELECT departure_airport_id, arrival_airport_id
+                FROM ml_flights
+                WHERE user_id = :user_id
+                  AND departure_date <= CURDATE()
+                GROUP BY departure_airport_id, arrival_airport_id
+            ) AS completed_routes
+            "
+        );
+        $stmt->execute([
+            'user_id' => $userId,
+        ]);
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    private function durationThresholdEarnedAt(
+        int $userId,
+        int $threshold
+    ): ?string {
+        $stmt = $this->pdo->prepare(
+            "
+            SELECT
+                departure_date,
+                COALESCE(departure_time, '00:00:00') AS departure_time,
+                COALESCE(duration_seconds, 0) AS duration_seconds
+            FROM ml_flights
+            WHERE user_id = :user_id
+              AND departure_date <= CURDATE()
+            ORDER BY
+                departure_date ASC,
+                COALESCE(departure_time, '00:00:00') ASC,
+                id ASC
+            "
+        );
+        $stmt->execute([
+            'user_id' => $userId,
+        ]);
+
+        $requiredSeconds = $threshold * 3600;
+        $elapsedSeconds = 0;
+
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $elapsedSeconds += (int) $row['duration_seconds'];
+
+            if ($elapsedSeconds >= $requiredSeconds) {
+                return sprintf(
+                    '%s %s',
+                    (string) $row['departure_date'],
+                    (string) $row['departure_time']
+                );
+            }
+        }
+
+        return null;
+    }
+
+    private function routeThresholdEarnedAt(
+        int $userId,
+        int $threshold
+    ): ?string {
+        $stmt = $this->pdo->prepare(
+            "
+            SELECT
+                departure_date,
+                COALESCE(departure_time, '00:00:00') AS departure_time,
+                departure_airport_id,
+                arrival_airport_id
+            FROM ml_flights
+            WHERE user_id = :user_id
+              AND departure_date <= CURDATE()
+            ORDER BY
+                departure_date ASC,
+                COALESCE(departure_time, '00:00:00') ASC,
+                id ASC
+            "
+        );
+        $stmt->execute([
+            'user_id' => $userId,
+        ]);
+
+        $visited = [];
+
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            // Trasy są kierunkowe: WAW→DOH i DOH→WAW liczą się osobno.
+            $routeKey = (string) $row['departure_airport_id']
+                . ':'
+                . (string) $row['arrival_airport_id'];
+            $visited[$routeKey] = true;
+
+            if (count($visited) >= $threshold) {
+                return sprintf(
+                    '%s %s',
+                    (string) $row['departure_date'],
+                    (string) $row['departure_time']
+                );
+            }
+        }
+
+        return null;
     }
 
     private function flightThresholdEarnedAt(
@@ -1478,6 +1878,37 @@ final class AchievementController
             $this->completedAircraftTypeCount($userId)
         );
 
+        $routeState = $this->buildFamilyState(
+            $userId,
+            'routes',
+            self::ROUTE_THRESHOLDS,
+            $this->completedRouteCount($userId)
+        );
+
+        $durationState = $this->buildFamilyState(
+            $userId,
+            'duration',
+            self::DURATION_THRESHOLDS,
+            $this->completedDurationHours($userId)
+        );
+
+        $astronomicalState = $this->buildFamilyState(
+            $userId,
+            'astronomical',
+            self::ASTRONOMICAL_THRESHOLDS,
+            $this->completedDistanceKm($userId)
+        );
+
+        $intensityYearRecord = $this->intensityYearRecord($userId);
+        $intensityMonthRecord = $this->intensityMonthRecord($userId);
+        $intensityStreakRecord = $this->intensityStreakRecord($userId);
+        $intensityDayRecord = $this->intensityDayRecord($userId);
+
+        $intensityYearState = $this->buildFamilyState($userId, 'intensity_year', self::INTENSITY_YEAR_THRESHOLDS, $intensityYearRecord['value']);
+        $intensityMonthState = $this->buildFamilyState($userId, 'intensity_month', self::INTENSITY_MONTH_THRESHOLDS, $intensityMonthRecord['value']);
+        $intensityStreakState = $this->buildFamilyState($userId, 'intensity_streak', self::INTENSITY_STREAK_THRESHOLDS, $intensityStreakRecord['value']);
+        $intensityDayState = $this->buildFamilyState($userId, 'intensity_day', self::INTENSITY_DAY_THRESHOLDS, $intensityDayRecord['value']);
+
         $aircraftManufacturerState = $this->buildAircraftManufacturerState($userId);
         $aircraftOriginState = $this->buildAircraftOriginState($userId);
         $aircraftUniqueState = $this->buildAircraftUniqueState($userId);
@@ -1523,6 +1954,54 @@ final class AchievementController
                 'achievements' => $aircraftState['achievements'],
                 'pending_unlocks' => $aircraftState['pending_unlocks'],
                 'summary' => $aircraftState['summary'],
+            ],
+            'routes' => [
+                'completed_routes' => $routeState['completed_value'],
+                'achievements' => $routeState['achievements'],
+                'pending_unlocks' => $routeState['pending_unlocks'],
+                'summary' => $routeState['summary'],
+            ],
+            'duration' => [
+                'completed_hours' => $durationState['completed_value'],
+                'achievements' => $durationState['achievements'],
+                'pending_unlocks' => $durationState['pending_unlocks'],
+                'summary' => $durationState['summary'],
+            ],
+            'astronomical' => [
+                'completed_distance_km' => $astronomicalState['completed_value'],
+                'achievements' => $astronomicalState['achievements'],
+                'pending_unlocks' => $astronomicalState['pending_unlocks'],
+                'summary' => $astronomicalState['summary'],
+            ],
+            'intensity' => [
+                'year' => [
+                    'completed_value' => $intensityYearState['completed_value'],
+                    'achievements' => $intensityYearState['achievements'],
+                    'pending_unlocks' => $intensityYearState['pending_unlocks'],
+                    'summary' => $intensityYearState['summary'],
+                    'record' => $intensityYearRecord,
+                ],
+                'month' => [
+                    'completed_value' => $intensityMonthState['completed_value'],
+                    'achievements' => $intensityMonthState['achievements'],
+                    'pending_unlocks' => $intensityMonthState['pending_unlocks'],
+                    'summary' => $intensityMonthState['summary'],
+                    'record' => $intensityMonthRecord,
+                ],
+                'streak' => [
+                    'completed_value' => $intensityStreakState['completed_value'],
+                    'achievements' => $intensityStreakState['achievements'],
+                    'pending_unlocks' => $intensityStreakState['pending_unlocks'],
+                    'summary' => $intensityStreakState['summary'],
+                    'record' => $intensityStreakRecord,
+                ],
+                'day' => [
+                    'completed_value' => $intensityDayState['completed_value'],
+                    'achievements' => $intensityDayState['achievements'],
+                    'pending_unlocks' => $intensityDayState['pending_unlocks'],
+                    'summary' => $intensityDayState['summary'],
+                    'record' => $intensityDayRecord,
+                ],
             ],
             'aircraft_manufacturers' => $aircraftManufacturerState,
             'aircraft_origins' => $aircraftOriginState,

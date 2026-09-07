@@ -72,6 +72,81 @@ import aircraft50 from '../assets/achievements/aircraft/aircraft-50.png'
 import aircraft75 from '../assets/achievements/aircraft/aircraft-75.png'
 import aircraft100 from '../assets/achievements/aircraft/aircraft-100.png'
 
+import routes10 from '../assets/achievements/routes/routes-10.png'
+import routes25 from '../assets/achievements/routes/routes-25.png'
+import routes50 from '../assets/achievements/routes/routes-50.png'
+import routes75 from '../assets/achievements/routes/routes-75.png'
+import routes100 from '../assets/achievements/routes/routes-100.png'
+import routes150 from '../assets/achievements/routes/routes-150.png'
+import routes200 from '../assets/achievements/routes/routes-200.png'
+import routes250 from '../assets/achievements/routes/routes-250.png'
+import routes300 from '../assets/achievements/routes/routes-300.png'
+import routes500 from '../assets/achievements/routes/routes-500.png'
+
+import duration24 from '../assets/achievements/duration/duration-24.png'
+import duration100 from '../assets/achievements/duration/duration-100.png'
+import duration250 from '../assets/achievements/duration/duration-250.png'
+import duration500 from '../assets/achievements/duration/duration-500.png'
+import duration750 from '../assets/achievements/duration/duration-750.png'
+import duration1000 from '../assets/achievements/duration/duration-1000.png'
+import duration1250 from '../assets/achievements/duration/duration-1250.png'
+import duration1500 from '../assets/achievements/duration/duration-1500.png'
+import duration2000 from '../assets/achievements/duration/duration-2000.png'
+import duration2500 from '../assets/achievements/duration/duration-2500.png'
+
+import astronomical40075 from '../assets/achievements/astronomical/astronomical-40075.png'
+import astronomical200375 from '../assets/achievements/astronomical/astronomical-200375.png'
+import astronomical299792 from '../assets/achievements/astronomical/astronomical-299792.png'
+import astronomical384400 from '../assets/achievements/astronomical/astronomical-384400.png'
+import astronomical768800 from '../assets/achievements/astronomical/astronomical-768800.png'
+import astronomical1000000 from '../assets/achievements/astronomical/astronomical-1000000.png'
+import astronomical1153200 from '../assets/achievements/astronomical/astronomical-1153200.png'
+import astronomical1922000 from '../assets/achievements/astronomical/astronomical-1922000.png'
+import astronomical2997925 from '../assets/achievements/astronomical/astronomical-2997925.png'
+import astronomical3844000 from '../assets/achievements/astronomical/astronomical-3844000.png'
+
+import intensityYear10 from '../assets/achievements/intensity/year/year-10.png'
+import intensityYear20 from '../assets/achievements/intensity/year/year-20.png'
+import intensityYear30 from '../assets/achievements/intensity/year/year-30.png'
+import intensityYear40 from '../assets/achievements/intensity/year/year-40.png'
+import intensityYear50 from '../assets/achievements/intensity/year/year-50.png'
+import intensityYear60 from '../assets/achievements/intensity/year/year-60.png'
+import intensityYear75 from '../assets/achievements/intensity/year/year-75.png'
+import intensityYear100 from '../assets/achievements/intensity/year/year-100.png'
+import intensityYear125 from '../assets/achievements/intensity/year/year-125.png'
+import intensityYear150 from '../assets/achievements/intensity/year/year-150.png'
+import intensityMonth4 from '../assets/achievements/intensity/month/month-4.png'
+import intensityMonth6 from '../assets/achievements/intensity/month/month-6.png'
+import intensityMonth8 from '../assets/achievements/intensity/month/month-8.png'
+import intensityMonth10 from '../assets/achievements/intensity/month/month-10.png'
+import intensityMonth12 from '../assets/achievements/intensity/month/month-12.png'
+import intensityMonth15 from '../assets/achievements/intensity/month/month-15.png'
+import intensityMonth18 from '../assets/achievements/intensity/month/month-18.png'
+import intensityMonth22 from '../assets/achievements/intensity/month/month-22.png'
+import intensityMonth26 from '../assets/achievements/intensity/month/month-26.png'
+import intensityMonth30 from '../assets/achievements/intensity/month/month-30.png'
+import intensityStreak2 from '../assets/achievements/intensity/streak/streak-2.png'
+import intensityStreak3 from '../assets/achievements/intensity/streak/streak-3.png'
+import intensityStreak4 from '../assets/achievements/intensity/streak/streak-4.png'
+import intensityStreak5 from '../assets/achievements/intensity/streak/streak-5.png'
+import intensityStreak6 from '../assets/achievements/intensity/streak/streak-6.png'
+import intensityStreak7 from '../assets/achievements/intensity/streak/streak-7.png'
+import intensityStreak10 from '../assets/achievements/intensity/streak/streak-10.png'
+import intensityStreak14 from '../assets/achievements/intensity/streak/streak-14.png'
+import intensityStreak21 from '../assets/achievements/intensity/streak/streak-21.png'
+import intensityStreak30 from '../assets/achievements/intensity/streak/streak-30.png'
+import intensityDay2 from '../assets/achievements/intensity/day/day-2.png'
+import intensityDay3 from '../assets/achievements/intensity/day/day-3.png'
+import intensityDay4 from '../assets/achievements/intensity/day/day-4.png'
+import intensityDay5 from '../assets/achievements/intensity/day/day-5.png'
+import intensityDay6 from '../assets/achievements/intensity/day/day-6.png'
+import intensityDay7 from '../assets/achievements/intensity/day/day-7.png'
+import intensityDay8 from '../assets/achievements/intensity/day/day-8.png'
+import intensityDay10 from '../assets/achievements/intensity/day/day-10.png'
+import intensityDay12 from '../assets/achievements/intensity/day/day-12.png'
+import intensityDay15 from '../assets/achievements/intensity/day/day-15.png'
+
+
 import manufacturerAirbus from '../assets/achievements/aircraft/manufacturers/airbus.png'
 import manufacturerBoeing from '../assets/achievements/aircraft/manufacturers/boeing.png'
 import manufacturerEmbraer from '../assets/achievements/aircraft/manufacturers/embraer.png'
@@ -211,6 +286,98 @@ export const aircraftBadgeImages: Record<number, string> = {
   100: aircraft100,
 }
 
+export const routeBadgeImages: Record<number, string> = {
+  10: routes10,
+  25: routes25,
+  50: routes50,
+  75: routes75,
+  100: routes100,
+  150: routes150,
+  200: routes200,
+  250: routes250,
+  300: routes300,
+  500: routes500,
+}
+
+export const durationBadgeImages: Record<number, string> = {
+  24: duration24,
+  100: duration100,
+  250: duration250,
+  500: duration500,
+  750: duration750,
+  1000: duration1000,
+  1250: duration1250,
+  1500: duration1500,
+  2000: duration2000,
+  2500: duration2500,
+}
+
+
+export const astronomicalBadgeImages: Record<number, string> = {
+  40075: astronomical40075,
+  200375: astronomical200375,
+  299792: astronomical299792,
+  384400: astronomical384400,
+  768800: astronomical768800,
+  1000000: astronomical1000000,
+  1153200: astronomical1153200,
+  1922000: astronomical1922000,
+  2997925: astronomical2997925,
+  3844000: astronomical3844000,
+}
+
+export const intensityYearBadgeImages: Record<number, string> = {
+  10: intensityYear10,
+  20: intensityYear20,
+  30: intensityYear30,
+  40: intensityYear40,
+  50: intensityYear50,
+  60: intensityYear60,
+  75: intensityYear75,
+  100: intensityYear100,
+  125: intensityYear125,
+  150: intensityYear150,
+}
+
+export const intensityMonthBadgeImages: Record<number, string> = {
+  4: intensityMonth4,
+  6: intensityMonth6,
+  8: intensityMonth8,
+  10: intensityMonth10,
+  12: intensityMonth12,
+  15: intensityMonth15,
+  18: intensityMonth18,
+  22: intensityMonth22,
+  26: intensityMonth26,
+  30: intensityMonth30,
+}
+
+export const intensityStreakBadgeImages: Record<number, string> = {
+  2: intensityStreak2,
+  3: intensityStreak3,
+  4: intensityStreak4,
+  5: intensityStreak5,
+  6: intensityStreak6,
+  7: intensityStreak7,
+  10: intensityStreak10,
+  14: intensityStreak14,
+  21: intensityStreak21,
+  30: intensityStreak30,
+}
+
+export const intensityDayBadgeImages: Record<number, string> = {
+  2: intensityDay2,
+  3: intensityDay3,
+  4: intensityDay4,
+  5: intensityDay5,
+  6: intensityDay6,
+  7: intensityDay7,
+  8: intensityDay8,
+  10: intensityDay10,
+  12: intensityDay12,
+  15: intensityDay15,
+}
+
 export function getFlightBadgeImage(threshold: number): string | null {
   return flightBadgeImages[threshold] ?? null
 }
@@ -239,8 +406,30 @@ export function getAircraftBadgeImage(threshold: number): string | null {
   return aircraftBadgeImages[threshold] ?? null
 }
 
+export function getRouteBadgeImage(threshold: number): string | null {
+  return routeBadgeImages[threshold] ?? null
+}
+
+export function getDurationBadgeImage(threshold: number): string | null {
+  return durationBadgeImages[threshold] ?? null
+}
+
+export function getAstronomicalBadgeImage(threshold: number): string | null {
+  return astronomicalBadgeImages[threshold] ?? null
+}
+
+export function getIntensityBadgeImage(
+  kind: 'year' | 'month' | 'streak' | 'day',
+  threshold: number,
+): string | null {
+  if (kind === 'year') return intensityYearBadgeImages[threshold] ?? null
+  if (kind === 'month') return intensityMonthBadgeImages[threshold] ?? null
+  if (kind === 'streak') return intensityStreakBadgeImages[threshold] ?? null
+  return intensityDayBadgeImages[threshold] ?? null
+}
+
 export function getAchievementBadgeImage(
-  family: 'flights' | 'distance' | 'airports' | 'countries' | 'continents' | 'airlines' | 'aircraft',
+  family: 'flights' | 'distance' | 'airports' | 'countries' | 'continents' | 'airlines' | 'aircraft' | 'routes' | 'duration' | 'astronomical' | 'intensity_year' | 'intensity_month' | 'intensity_streak' | 'intensity_day',
   threshold: number,
 ): string | null {
   if (family === 'distance') return getDistanceBadgeImage(threshold)
@@ -249,6 +438,13 @@ export function getAchievementBadgeImage(
   if (family === 'continents') return getContinentBadgeImage(threshold)
   if (family === 'airlines') return getAirlineBadgeImage(threshold)
   if (family === 'aircraft') return getAircraftBadgeImage(threshold)
+  if (family === 'routes') return getRouteBadgeImage(threshold)
+  if (family === 'duration') return getDurationBadgeImage(threshold)
+  if (family === 'astronomical') return getAstronomicalBadgeImage(threshold)
+  if (family === 'intensity_year') return getIntensityBadgeImage('year', threshold)
+  if (family === 'intensity_month') return getIntensityBadgeImage('month', threshold)
+  if (family === 'intensity_streak') return getIntensityBadgeImage('streak', threshold)
+  if (family === 'intensity_day') return getIntensityBadgeImage('day', threshold)
   return getFlightBadgeImage(threshold)
 }
 

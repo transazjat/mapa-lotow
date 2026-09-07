@@ -25,6 +25,10 @@ import {
   getCountryBadgeImage,
   getDistanceBadgeImage,
   getFlightBadgeImage,
+  getRouteBadgeImage,
+  getDurationBadgeImage,
+  getAstronomicalBadgeImage,
+  getIntensityBadgeImage,
 } from '../utils/achievementBadges'
 
 import AchievementSidebar from './achievements/AchievementSidebar.vue'
@@ -51,6 +55,7 @@ const selectedKey = ref<string | null>(null)
 const activeFamily = ref('flights')
 const exporting = ref<'png' | 'jpg' | null>(null)
 const activeAircraftTab = ref<'collection' | 'manufacturers' | 'origins' | 'special'>('collection')
+const activeIntensityTab = ref<'year' | 'month' | 'streak' | 'day'>('year')
 const selectedManufacturerKey = ref<string | null>(null)
 const selectedOriginKey = ref<string | null>(null)
 const selectedUniqueKey = ref<string | null>(null)
@@ -218,6 +223,58 @@ const aircraftBadgeDescriptions: Record<number, string> = {
   100: 'Sto różnych typów samolotów to niezwykle rzadkie osiągnięcie i prawdziwie wyjątkowa kolekcja konstrukcji lotniczych.',
 }
 
+const routeBadgeNames: Record<number, string> = {
+  10: 'Początek sieci tras',
+  25: 'Mapa połączeń rośnie',
+  50: 'Pięćdziesiąt różnych tras',
+  75: 'Mapa coraz pełniejsza',
+  100: 'Setka połączeń na mapie',
+  150: 'Między wieloma miastami',
+  200: 'Wielka kolekcja tras',
+  250: 'Ćwierć tysiąca połączeń',
+  300: 'Mistrz wielu kierunków',
+  500: 'Kolekcjoner pięciuset tras',
+}
+
+const routeBadgeDescriptions: Record<number, string> = {
+  10: 'Dziesięć różnych tras to pierwszy wyraźny ślad Twoich podróży na mapie. Sieć połączeń zaczyna nabierać kształtu.',
+  25: 'Dwadzieścia pięć różnych tras tworzy już coraz bardziej rozbudowaną sieć miejsc połączonych Twoimi lotami.',
+  50: 'Pięćdziesiąt różnych tras to solidna kolekcja połączeń i coraz większa różnorodność kierunków na Twojej mapie.',
+  75: 'Siedemdziesiąt pięć różnych tras sprawia, że mapa podróży zaczyna wypełniać się coraz gęstszą siecią połączeń.',
+  100: 'Sto różnych tras to ważny kamień milowy. Twoja mapa pokazuje już rozbudowaną historię podróży między wieloma miejscami.',
+  150: 'Sto pięćdziesiąt różnych tras oznacza szeroką sieć połączeń prowadzących między dziesiątkami miast i lotnisk.',
+  200: 'Dwieście różnych tras to imponujący zbiór połączeń i świadectwo bardzo dużej różnorodności lotniczych podróży.',
+  250: 'Dwieście pięćdziesiąt różnych tras tworzy rozległą sieć lotów, która obejmuje już znaczną część Twojej podróżniczej mapy świata.',
+  300: 'Trzysta różnych tras to poziom wyjątkowo bogatej historii lotniczej, pełnej różnych kierunków, lotnisk i połączeń.',
+  500: 'Pięćset różnych tras to niezwykle rzadkie osiągnięcie i ogromna osobista sieć połączeń zbudowana przez lata podróży.',
+}
+
+const durationBadgeNames: Record<number, string> = {
+  24: 'Doba w powietrzu',
+  100: 'Pierwsze sto godzin',
+  250: 'Długie godziny w chmurach',
+  500: 'Pięćset godzin w powietrzu',
+  750: 'Doświadczony podróżnik powietrzny',
+  1000: 'Mistrz tysiąca godzin',
+  1250: 'Lotniczy maratończyk',
+  1500: 'Półtora tysiąca godzin',
+  2000: 'Legenda przestworzy',
+  2500: 'Kronikarz tysięcy godzin',
+}
+
+const durationBadgeDescriptions: Record<number, string> = {
+  24: 'Łącznie spędziłeś w powietrzu pełną dobę. To pierwszy wyraźny znak, że latanie stało się ważną częścią Twoich podróży.',
+  100: 'Sto godzin w powietrzu to już solidny bagaż lotniczych doświadczeń i wiele tras pokonanych ponad chmurami.',
+  250: 'Dwieście pięćdziesiąt godzin lotu oznacza naprawdę dużo czasu spędzonego między startem a lądowaniem.',
+  500: 'Pół tysiąca godzin w powietrzu to imponujący wynik i setki godzin podróży zapisanych w Twojej historii lotów.',
+  750: 'Siedemset pięćdziesiąt godzin lotu to poziom, który świadczy o bardzo dużym doświadczeniu w podróżach lotniczych.',
+  1000: 'Tysiąc godzin w powietrzu to wyjątkowy kamień milowy i symbol naprawdę rozbudowanej historii lotniczej.',
+  1250: 'Ponad tysiąc dwieście godzin lotu wymaga czasu, cierpliwości i ogromnej liczby podróży. To prawdziwy lotniczy maraton.',
+  1500: 'Półtora tysiąca godzin spędzonych w powietrzu to rezultat dostępny tylko dla najbardziej doświadczonych podróżników.',
+  2000: 'Dwa tysiące godzin lotu to niezwykle rzadki poziom doświadczenia i ogromna część życia spędzona ponad ziemią.',
+  2500: 'Dwa i pół tysiąca godzin w powietrzu to monumentalny zapis podróży, tras i lat spędzonych na pokładach samolotów.',
+}
+
 const aircraftManufacturerDescriptions: Record<string, string> = {
   airbus: 'Pierwszy lot samolotem rodziny Airbus. Jedna z najważniejszych europejskich marek lotniczych trafia do Twojej kolekcji.',
   boeing: 'Pierwszy lot Boeingiem. Klasyka światowego lotnictwa pasażerskiego i jedna z najważniejszych rodzin samolotów w historii.',
@@ -302,7 +359,117 @@ const aircraftUniqueHistories: Record<string, string> = {
   helicopter: 'Śmigłowiec różni się od samolotu możliwością pionowego startu, zawisu i lądowania bez pasa. Dzięki temu od dziesięcioleci jest wykorzystywany w ratownictwie, transporcie, turystyce, pracach specjalistycznych i lotach widokowych.',
 }
 
+
+const intensityYearBadgeNames: Record<number, string> = {
+  10: 'Pierwszy intensywny rok',
+  20: 'Rok nabiera tempa',
+  30: 'Trzydzieści lotów w roku',
+  40: 'Rok pełen przelotów',
+  50: 'Pięćdziesiąt lotów rocznie',
+  60: 'Wysokie obroty',
+  75: 'Roczny maraton lotniczy',
+  100: 'Setka lotów w roku',
+  125: 'Rok na pełnej mocy',
+  150: 'Mistrz intensywnego roku',
+}
+
+const intensityMonthBadgeNames: Record<number, string> = {
+  4: 'Lotny miesiąc',
+  6: 'Miesiąc w ruchu',
+  8: 'Kalendarz pełen przelotów',
+  10: 'Dziesięć lotów w miesiącu',
+  12: 'Miesiąc bez wytchnienia',
+  15: 'Piętnaście lotów w miesiącu',
+  18: 'Bardzo gorący miesiąc',
+  22: 'Miesiąc wysokiej intensywności',
+  26: 'Prawdziwy maraton miesiąca',
+  30: 'Rekord miesiąca',
+}
+
+const intensityStreakBadgeNames: Record<number, string> = {
+  2: 'Dwa dni w drodze',
+  3: 'Trzydniowa seria',
+  4: 'Cztery dni lotów',
+  5: 'Pięć dni bez przerwy',
+  6: 'Sześć dni w podróży',
+  7: 'Tydzień w powietrzu',
+  10: 'Dziesięć dni serii',
+  14: 'Dwa tygodnie w rytmie lotów',
+  21: 'Trzy tygodnie w trasie',
+  30: 'Miesiąc ciągłej serii',
+}
+
+const intensityDayBadgeNames: Record<number, string> = {
+  2: 'Podwójny przelot',
+  3: 'Dzień wielu odcinków',
+  4: 'Cztery loty jednego dnia',
+  5: 'Pięć lotów w jeden dzień',
+  6: 'Dzień bez postoju',
+  7: 'Siedem lotów jednego dnia',
+  8: 'Osiem lotów w dobę',
+  10: 'Dziesięć lotów w jeden dzień',
+  12: 'Lotniczy ultramaraton',
+  15: 'Dzień rekordzisty',
+}
+
+const intensityYearDescriptions: Record<number, string> = {
+  10: 'Dziesięć lotów w jednym roku to pierwszy wyraźny znak regularnego latania.',
+  20: 'Dwadzieścia lotów w ciągu roku oznacza już stałą obecność podróży lotniczych w kalendarzu.',
+  30: 'Trzydzieści lotów w jednym roku to tempo prawie trzech lotów miesięcznie.',
+  40: 'Czterdzieści lotów w roku tworzy naprawdę intensywny podróżniczy rytm.',
+  50: 'Pięćdziesiąt lotów w ciągu jednego roku to poziom, przy którym lotniska stają się stałym elementem codzienności.',
+  60: 'Sześćdziesiąt lotów w roku oznacza wyjątkowo wysokie tempo podróży.',
+  75: 'Siedemdziesiąt pięć lotów w jednym roku to prawdziwy roczny maraton lotniczy.',
+  100: 'Sto lotów w jednym roku to niezwykle intensywny wynik i wyjątkowy kamień milowy.',
+  125: 'Sto dwadzieścia pięć lotów w roku oznacza niemal nieustanny ruch między lotniskami.',
+  150: 'Sto pięćdziesiąt lotów w jednym roku to ekstremalny poziom intensywności podróży lotniczych.',
+}
+
+const intensityMonthDescriptions: Record<number, string> = {
+  4: 'Cztery loty w jednym miesiącu wystarczają, by kalendarz zaczął wyraźnie żyć podróżami.',
+  6: 'Sześć lotów w miesiącu oznacza regularne przeloty co kilka dni.',
+  8: 'Osiem lotów w jednym miesiącu to już bardzo aktywny okres podróży.',
+  10: 'Dziesięć lotów w miesiącu to dwucyfrowy wynik osiągnięty w zaledwie kilkadziesiąt dni.',
+  12: 'Dwanaście lotów w miesiącu oznacza średnio niemal trzy loty tygodniowo.',
+  15: 'Piętnaście lotów w jednym miesiącu to bardzo wysoka intensywność.',
+  18: 'Osiemnaście lotów sprawia, że niemal co drugi dzień miesiąca związany jest z kolejnym odcinkiem podróży.',
+  22: 'Dwadzieścia dwa loty w jednym miesiącu to niezwykle napięty lotniczy kalendarz.',
+  26: 'Dwadzieścia sześć lotów w miesiącu to prawdziwy maraton odcinków i przesiadek.',
+  30: 'Trzydzieści lotów w jednym miesiącu to rekordowe tempo - średnio jeden lot dziennie.',
+}
+
+const intensityStreakDescriptions: Record<number, string> = {
+  2: 'Dwa kolejne dni kalendarzowe z przynajmniej jednym lotem rozpoczynają serię.',
+  3: 'Trzy dni z rzędu z lotem to pierwsza wyraźna podróżnicza seria.',
+  4: 'Cztery kolejne dni z lotami oznaczają bardzo intensywną trasę.',
+  5: 'Pięć dni bez przerwy z co najmniej jednym lotem każdego dnia.',
+  6: 'Sześć kolejnych dni w rytmie startów i lądowań.',
+  7: 'Pełny tydzień, w którym każdego dnia odbył się przynajmniej jeden lot.',
+  10: 'Dziesięć kolejnych dni z lotami to prawdziwy maraton podróży.',
+  14: 'Dwa pełne tygodnie kolejnych dni z lotem to wyjątkowo rzadka seria.',
+  21: 'Trzy tygodnie bez przerwy w lotniczym rytmie to osiągnięcie ekstremalne.',
+  30: 'Trzydzieści kolejnych dni z przynajmniej jednym lotem każdego dnia to absolutny rekord intensywności.',
+}
+
+const intensityDayDescriptions: Record<number, string> = {
+  2: 'Dwa odcinki lotnicze w jednym dniu - klasyczna przesiadka lub intensywny dzień podróży.',
+  3: 'Trzy loty jednego dnia oznaczają już kilka startów, lądowań i zmian lotnisk w ciągu kilkunastu godzin.',
+  4: 'Cztery loty w jednym dniu to bardzo intensywna sekwencja odcinków.',
+  5: 'Pięć lotów jednego dnia to lotniczy dzień na najwyższych obrotach.',
+  6: 'Sześć odcinków w jednym dniu pozostawia bardzo mało czasu między kolejnymi lotami.',
+  7: 'Siedem lotów jednego dnia to wyjątkowo rzadkie osiągnięcie.',
+  8: 'Osiem lotów w ciągu jednego dnia oznacza niemal ciągły ruch między samolotami i terminalami.',
+  10: 'Dziesięć lotów w jeden dzień to rezultat z pogranicza lotniczego maratonu.',
+  12: 'Dwanaście odcinków jednego dnia to ultramaraton startów i lądowań.',
+  15: 'Piętnaście lotów w jednym dniu to ekstremalny rekord dla najbardziej niezwykłych historii podróżniczych.',
+}
+
 const numberFormatter = new Intl.NumberFormat('pl-PL')
+const decimalFormatter = new Intl.NumberFormat('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+const EARTH_CIRCUMFERENCE_KM = 40075
+const EARTH_MOON_DISTANCE_KM = 384400
+const EARTH_SUN_DISTANCE_KM = 149597871
 
 function formatContinentLabel(value: number): string {
   const mod10 = value % 10
@@ -339,6 +506,46 @@ function formatAircraftLabel(value: number): string {
     : (mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14))
       ? 'typy samolotów'
       : 'typów samolotów'
+
+  return `${numberFormatter.format(value)} ${suffix}`
+}
+
+
+const astronomicalBadgeNames: Record<number, string> = {
+  40075: 'Dookoła Ziemi',
+  200375: 'Pięć okrążeń Ziemi',
+  299792: 'Sekunda światła',
+  384400: 'Lot na Księżyc',
+  768800: 'Podróż na Księżyc i z powrotem',
+  1000000: 'Milion kilometrów w kosmicznej skali',
+  1153200: 'Trzy razy na Księżyc',
+  1922000: 'Pięć razy na Księżyc',
+  2997925: 'Dziesięć sekund światła',
+  3844000: 'Dziesięć razy na Księżyc',
+}
+
+const astronomicalBadgeDescriptions: Record<number, string> = {
+  40075: '40 075 kilometrów to mniej więcej pełny obwód Ziemi. Twój łączny dystans lotniczy pozwala już symbolicznie okrążyć naszą planetę.',
+  200375: '200 375 kilometrów odpowiada pięciu podróżom dookoła Ziemi. To wynik, który pokazuje naprawdę duży zasięg Twoich lotów.',
+  299792: '299 792 kilometrów to liczba kojarzona z prędkością światła. Na tej skali Twój dorobek podróżniczy nabiera naprawdę kosmicznego wymiaru.',
+  384400: '384 400 kilometrów to średnia odległość z Ziemi na Księżyc. Twoje loty osiągnęły już symboliczny dystans jednej podróży na naszego naturalnego satelitę.',
+  768800: '768 800 kilometrów odpowiada podróży na Księżyc i z powrotem. To jeden z najbardziej efektownych progów w całej serii.',
+  1000000: 'Milion kilometrów to już nie tylko ważny kamień milowy serii dystansowej, ale również imponujący wynik na kosmicznej skali porównań.',
+  1153200: '1 153 200 kilometrów to równowartość trzech podróży z Ziemi na Księżyc. Twoja mapa lotów sięga naprawdę daleko.',
+  1922000: '1 922 000 kilometrów odpowiada pięciu podróżom na Księżyc. To próg dla wyjątkowo intensywnego podróżowania samolotem.',
+  2997925: '2 997 925 kilometrów to umowne dziesięć sekund światła. Twoje podróże przekroczyły próg, który brzmi niemal science fiction.',
+  3844000: '3 844 000 kilometrów to dziesięć podróży z Ziemi na Księżyc. To wielka, widowiskowa odznaka kończąca serię astronomicznych dystansów.',
+}
+
+function formatRouteLabel(value: number): string {
+  const mod10 = value % 10
+  const mod100 = value % 100
+
+  const suffix = value === 1
+    ? 'trasa'
+    : (mod10 >= 2 && mod10 <= 4 && !(mod100 >= 12 && mod100 <= 14))
+      ? 'trasy'
+      : 'tras'
 
   return `${numberFormatter.format(value)} ${suffix}`
 }
@@ -428,6 +635,39 @@ const familyState = computed<FamilyViewState | null>(() => {
       completedValue: state.aircraft.completed_aircraft_types,
       achievements: state.aircraft.achievements,
       summary: state.aircraft.summary,
+    }
+  }
+
+  if (activeFamily.value === 'routes') {
+    return {
+      completedValue: state.routes.completed_routes,
+      achievements: state.routes.achievements,
+      summary: state.routes.summary,
+    }
+  }
+
+  if (activeFamily.value === 'duration') {
+    return {
+      completedValue: state.duration.completed_hours,
+      achievements: state.duration.achievements,
+      summary: state.duration.summary,
+    }
+  }
+
+  if (activeFamily.value === 'astronomical') {
+    return {
+      completedValue: state.astronomical.completed_distance_km,
+      achievements: state.astronomical.achievements,
+      summary: state.astronomical.summary,
+    }
+  }
+
+  if (activeFamily.value === 'intensity') {
+    const intensityState = state.intensity[activeIntensityTab.value]
+    return {
+      completedValue: intensityState.completed_value,
+      achievements: intensityState.achievements,
+      summary: intensityState.summary,
     }
   }
 
@@ -530,6 +770,19 @@ function getBadgeName(threshold: number): string {
   if (activeFamily.value === 'aircraft') {
     return aircraftBadgeNames[threshold] ?? formatAircraftLabel(threshold)
   }
+  if (activeFamily.value === 'routes') {
+    return routeBadgeNames[threshold] ?? formatRouteLabel(threshold)
+  }
+  if (activeFamily.value === 'duration') {
+    return durationBadgeNames[threshold] ?? `${numberFormatter.format(threshold)} h`
+  }
+  if (activeFamily.value === 'astronomical') {
+    return astronomicalBadgeNames[threshold] ?? `${numberFormatter.format(threshold)} km`
+  }
+  if (activeFamily.value === 'intensity') {
+    const maps = { year: intensityYearBadgeNames, month: intensityMonthBadgeNames, streak: intensityStreakBadgeNames, day: intensityDayBadgeNames }
+    return maps[activeIntensityTab.value][threshold] ?? String(threshold)
+  }
   return flightBadgeNames[threshold] ?? `${threshold} lotów`
 }
 
@@ -552,6 +805,19 @@ function getBadgeDescription(threshold: number): string {
   if (activeFamily.value === 'aircraft') {
     return aircraftBadgeDescriptions[threshold] ?? 'Kolejny typ samolotu w Twojej osobistej kolekcji maszyn.'
   }
+  if (activeFamily.value === 'routes') {
+    return routeBadgeDescriptions[threshold] ?? 'Kolejna trasa w Twojej osobistej sieci lotniczych połączeń.'
+  }
+  if (activeFamily.value === 'duration') {
+    return durationBadgeDescriptions[threshold] ?? 'Kolejny kamień milowy czasu spędzonego w powietrzu.'
+  }
+  if (activeFamily.value === 'astronomical') {
+    return astronomicalBadgeDescriptions[threshold] ?? 'Twój łączny dystans lotniczy osiągnął kolejny kosmiczny próg porównawczy.'
+  }
+  if (activeFamily.value === 'intensity') {
+    const maps = { year: intensityYearDescriptions, month: intensityMonthDescriptions, streak: intensityStreakDescriptions, day: intensityDayDescriptions }
+    return maps[activeIntensityTab.value][threshold] ?? 'Kolejny rekord intensywności Twoich lotów.'
+  }
   return 'Symbol Twojej pasji do podróżowania i odkrywania świata.'
 }
 
@@ -562,6 +828,15 @@ function formatThreshold(threshold: number): string {
   if (activeFamily.value === 'continents') return formatContinentLabel(threshold)
   if (activeFamily.value === 'airlines') return formatAirlineLabel(threshold)
   if (activeFamily.value === 'aircraft') return formatAircraftLabel(threshold)
+  if (activeFamily.value === 'routes') return formatRouteLabel(threshold)
+  if (activeFamily.value === 'duration') return `${numberFormatter.format(threshold)} h`
+  if (activeFamily.value === 'astronomical') return `${numberFormatter.format(threshold)} km`
+  if (activeFamily.value === 'intensity') {
+    if (activeIntensityTab.value === 'year') return `${numberFormatter.format(threshold)} lotów / rok`
+    if (activeIntensityTab.value === 'month') return `${numberFormatter.format(threshold)} lotów / miesiąc`
+    if (activeIntensityTab.value === 'streak') return `${numberFormatter.format(threshold)} dni serii`
+    return `${numberFormatter.format(threshold)} lotów / dzień`
+  }
   return `${threshold} lotów`
 }
 
@@ -572,6 +847,10 @@ function getBadgeImage(threshold: number): string | null {
   if (activeFamily.value === 'continents') return getContinentBadgeImage(threshold)
   if (activeFamily.value === 'airlines') return getAirlineBadgeImage(threshold)
   if (activeFamily.value === 'aircraft') return getAircraftBadgeImage(threshold)
+  if (activeFamily.value === 'routes') return getRouteBadgeImage(threshold)
+  if (activeFamily.value === 'duration') return getDurationBadgeImage(threshold)
+  if (activeFamily.value === 'astronomical') return getAstronomicalBadgeImage(threshold)
+  if (activeFamily.value === 'intensity') return getIntensityBadgeImage(activeIntensityTab.value, threshold)
   return getFlightBadgeImage(threshold)
 }
 
@@ -582,6 +861,13 @@ function formatCurrentValue(value: number): string {
   if (activeFamily.value === 'continents') return formatContinentLabel(value)
   if (activeFamily.value === 'airlines') return formatAirlineLabel(value)
   if (activeFamily.value === 'aircraft') return formatAircraftLabel(value)
+  if (activeFamily.value === 'routes') return formatRouteLabel(value)
+  if (activeFamily.value === 'duration') return `${numberFormatter.format(value)} h`
+  if (activeFamily.value === 'astronomical') return `${numberFormatter.format(value)} km`
+  if (activeFamily.value === 'intensity') {
+    if (activeIntensityTab.value === 'streak') return `${numberFormatter.format(value)} dni`
+    return `${numberFormatter.format(value)} lotów`
+  }
   return `${numberFormatter.format(value)} lotów`
 }
 
@@ -592,13 +878,60 @@ function currentValueCaption(): string {
   if (activeFamily.value === 'continents') return 'Liczba odwiedzonych kontynentów'
   if (activeFamily.value === 'airlines') return 'Liczba różnych przewoźników'
   if (activeFamily.value === 'aircraft') return 'Liczba różnych typów samolotów'
+  if (activeFamily.value === 'routes') return 'Liczba różnych kierunkowych tras lotniczych'
+  if (activeFamily.value === 'duration') return 'Łączny czas wszystkich odbytych lotów'
+  if (activeFamily.value === 'astronomical') return 'Twój dystans lotniczy porównany z kosmicznymi punktami odniesienia'
+  if (activeFamily.value === 'intensity') {
+    if (activeIntensityTab.value === 'year') return 'Największa liczba lotów w jednym roku kalendarzowym'
+    if (activeIntensityTab.value === 'month') return 'Największa liczba lotów w jednym miesiącu kalendarzowym'
+    if (activeIntensityTab.value === 'streak') return 'Najdłuższa seria kolejnych dni z przynajmniej jednym lotem'
+    return 'Największa liczba lotów wykonanych jednego dnia'
+  }
   return 'Twoja łączna liczba odbytych lotów'
 }
+
+interface AstronomicalComparisonCard {
+  key: string
+  value: string
+  label: string
+  detail: string
+}
+
+const astronomicalComparisons = computed<AstronomicalComparisonCard[]>(() => {
+  const completedKm = data.value?.astronomical.completed_distance_km ?? 0
+
+  return [
+    {
+      key: 'earth-laps',
+      value: `${decimalFormatter.format(completedKm / EARTH_CIRCUMFERENCE_KM)}×`,
+      label: 'dookoła Ziemi',
+      detail: `1 okrążenie = ${numberFormatter.format(EARTH_CIRCUMFERENCE_KM)} km`,
+    },
+    {
+      key: 'moon-distance',
+      value: `${decimalFormatter.format(completedKm / EARTH_MOON_DISTANCE_KM)}×`,
+      label: 'odległość Ziemia-Księżyc',
+      detail: `1 dystans = ${numberFormatter.format(EARTH_MOON_DISTANCE_KM)} km`,
+    },
+    {
+      key: 'sun-progress',
+      value: `${decimalFormatter.format((completedKm / EARTH_SUN_DISTANCE_KM) * 100)}%`,
+      label: 'drogi do Słońca',
+      detail: `100% = ${numberFormatter.format(EARTH_SUN_DISTANCE_KM)} km`,
+    },
+  ]
+})
 
 function selectFamily(key: string): void {
   activeFamily.value = key
   selectedKey.value = null
   if (key === 'aircraft') activeAircraftTab.value = 'collection'
+  if (key === 'intensity') activeIntensityTab.value = 'year'
+}
+
+function selectIntensityTab(tab: 'year' | 'month' | 'streak' | 'day'): void {
+  activeIntensityTab.value = tab
+  selectedKey.value = null
 }
 
 function selectAchievement(item: AchievementItem): void {
@@ -617,6 +950,25 @@ async function exportCard(format: 'png' | 'jpg'): Promise<void> {
     exporting.value = null
   }
 }
+
+const intensityRecords = computed(() => {
+  const state = data.value?.intensity
+  if (!state) return []
+
+  const formatMonth = (value: string): string => {
+    if (!/^\d{4}-\d{2}$/.test(value)) return value
+    const [year, month] = value.split('-').map(Number)
+    const names = ['styczeń', 'luty', 'marzec', 'kwiecień', 'maj', 'czerwiec', 'lipiec', 'sierpień', 'wrzesień', 'październik', 'listopad', 'grudzień']
+    return `${names[month - 1]} ${year}`
+  }
+
+  return [
+    { label: 'Najbardziej intensywny rok', period: state.year.record.label, value: `${state.year.record.value} lotów` },
+    { label: 'Najbardziej intensywny miesiąc', period: formatMonth(state.month.record.label), value: `${state.month.record.value} lotów` },
+    { label: 'Najwięcej lotów jednego dnia', period: state.day.record.start_date ? formatDate(state.day.record.start_date) : '—', value: `${state.day.record.value} lotów` },
+    { label: 'Najdłuższa seria', period: state.streak.record.label, value: `${state.streak.record.value} dni z lotem` },
+  ]
+})
 
 const aircraftManufacturerState = computed(() => data.value?.aircraft_manufacturers ?? null)
 const aircraftOriginState = computed(() => data.value?.aircraft_origins ?? null)
@@ -839,6 +1191,13 @@ onMounted(load)
             </button>
           </nav>
 
+          <nav v-if="activeFamily === 'intensity'" class="aircraft-achievement-tabs intensity-achievement-tabs" aria-label="Kategorie osiągnięć intensywności">
+            <button type="button" :class="['aircraft-achievement-tabs__item', { 'is-active': activeIntensityTab === 'year' }]" @click="selectIntensityTab('year')">Rok</button>
+            <button type="button" :class="['aircraft-achievement-tabs__item', { 'is-active': activeIntensityTab === 'month' }]" @click="selectIntensityTab('month')">Miesiąc</button>
+            <button type="button" :class="['aircraft-achievement-tabs__item', { 'is-active': activeIntensityTab === 'streak' }]" @click="selectIntensityTab('streak')">Serie</button>
+            <button type="button" :class="['aircraft-achievement-tabs__item', { 'is-active': activeIntensityTab === 'day' }]" @click="selectIntensityTab('day')">Intensywny dzień</button>
+          </nav>
+
           <template v-if="activeFamily !== 'aircraft' || activeAircraftTab === 'collection'">
             <section class="achievement-workspace">
               <div class="achievement-collection">
@@ -863,15 +1222,58 @@ onMounted(load)
                     <h2>Kontynenty</h2>
                     <p>Liczba kontynentów obecnych na Twojej mapie lotniczych podróży. Każda kolejna część świata zwiększa globalny zasięg Twoich wypraw.</p>
                   </div>
+                  <div v-else-if="activeFamily === 'routes'">
+                    <h2>Trasy</h2>
+                    <p>Liczba różnych tras, którymi prowadziły Twoje loty. Każde nowe połączenie między lotniskami rozbudowuje Twoją osobistą sieć podróży.</p>
+                  </div>
                   <div v-else-if="activeFamily === 'airlines'">
                     <h2>Linie lotnicze</h2>
                     <p>Liczba różnych przewoźników, z którymi odbywały się Twoje loty. Każda nowa linia to kolejne barwy, samoloty i doświadczenia na Twojej mapie podróży.</p>
+                  </div>
+                  <div v-else-if="activeFamily === 'duration'">
+                    <h2>Czas w powietrzu</h2>
+                    <p>Łączny czas wszystkich Twoich odbytych lotów. Każda minuta od startu do lądowania powiększa Twój osobisty bilans godzin spędzonych w powietrzu.</p>
+                  </div>
+                  <div v-else-if="activeFamily === 'intensity'">
+                    <h2>Intensywność</h2>
+                    <p>Nie tylko liczba lotów ma znaczenie, ale również tempo, w jakim odbywają się podróże. Ten dział pokazuje najbardziej intensywne dni, serie, miesiące i lata w Twojej historii lotniczej.</p>
+                  </div>
+                  <div v-else-if="activeFamily === 'astronomical'">
+                    <h2>Astronomiczne dystanse</h2>
+                    <p>Ta seria porównuje Twój łączny dystans przebyty samolotem z symbolicznymi odległościami znanymi z astronomii i geografii. Dzięki temu zwykłe kilometry zamieniają się w opowieść o okrążeniach Ziemi, podróżach na Księżyc i innych kosmicznych progach.</p>
                   </div>
                   <div v-else>
                     <h2>Typy samolotów</h2>
                     <p>Liczba różnych typów samolotów, którymi odbywały się Twoje loty. Każda nowa konstrukcja poszerza Twoją osobistą kolekcję maszyn.</p>
                   </div>
                 </div>
+
+                <section v-if="activeFamily === 'intensity'" class="intensity-records-panel" aria-label="Twoje rekordy intensywności">
+                  <article v-for="record in intensityRecords" :key="record.label" class="intensity-record-card">
+                    <span>{{ record.label }}</span>
+                    <strong>{{ record.value }}</strong>
+                    <small>{{ record.period }}</small>
+                  </article>
+                </section>
+
+                <section v-if="activeFamily === 'astronomical'" class="astronomical-summary-panel">
+                  <article class="astronomical-summary-card astronomical-summary-card--primary">
+                    <span class="astronomical-summary-card__eyebrow">Twój łączny dystans</span>
+                    <strong class="astronomical-summary-card__value">{{ formatCurrentValue(familyState.completedValue) }}</strong>
+                    <span class="astronomical-summary-card__label">Łączny dystans wszystkich odbytych lotów</span>
+                  </article>
+
+                  <article
+                    v-for="item in astronomicalComparisons"
+                    :key="item.key"
+                    class="astronomical-summary-card"
+                  >
+                    <span class="astronomical-summary-card__eyebrow">Porównanie</span>
+                    <strong class="astronomical-summary-card__value">{{ item.value }}</strong>
+                    <span class="astronomical-summary-card__label">{{ item.label }}</span>
+                    <span class="astronomical-summary-card__detail">{{ item.detail }}</span>
+                  </article>
+                </section>
 
                 <AchievementProgressPanel
                   :current-value="formatCurrentValue(familyState.completedValue)"
@@ -1049,3 +1451,102 @@ onMounted(load)
     </section>
   </div>
 </template>
+
+<style scoped>
+.astronomical-summary-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0 0 24px;
+}
+
+.astronomical-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(243, 247, 252, 0.98) 100%);
+  border: 1px solid rgba(199, 213, 230, 0.9);
+  box-shadow: 0 16px 36px rgba(27, 63, 110, 0.08);
+}
+
+.astronomical-summary-card--primary {
+  background: linear-gradient(135deg, rgba(15, 61, 120, 0.98) 0%, rgba(30, 91, 170, 0.98) 100%);
+  border-color: rgba(30, 91, 170, 0.5);
+  color: #fff;
+}
+
+.astronomical-summary-card__eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(78, 109, 145, 0.88);
+}
+
+.astronomical-summary-card--primary .astronomical-summary-card__eyebrow {
+  color: rgba(227, 238, 255, 0.84);
+}
+
+.astronomical-summary-card__value {
+  font-size: clamp(1.5rem, 2vw, 2rem);
+  line-height: 1.05;
+  font-weight: 900;
+  color: #123c73;
+}
+
+.astronomical-summary-card--primary .astronomical-summary-card__value {
+  color: #fff;
+}
+
+.astronomical-summary-card__label {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #234c82;
+}
+
+.astronomical-summary-card--primary .astronomical-summary-card__label {
+  color: rgba(239, 245, 255, 0.92);
+}
+
+.astronomical-summary-card__detail {
+  margin-top: auto;
+  font-size: 0.82rem;
+  color: #61789a;
+}
+
+@media (max-width: 1200px) {
+  .astronomical-summary-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .astronomical-summary-panel {
+    grid-template-columns: 1fr;
+  }
+}
+
+.intensity-records-panel {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0 0 22px;
+}
+.intensity-record-card {
+  min-height: 112px;
+  padding: 16px 18px;
+  border: 1px solid rgba(86, 183, 220, .36);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(7, 38, 75, .98), rgba(11, 73, 116, .96));
+  box-shadow: 0 14px 30px rgba(7, 47, 88, .16);
+  color: #fff;
+}
+.intensity-record-card span { display:block; color:#a9dff0; font-size:11px; font-weight:800; letter-spacing:.06em; text-transform:uppercase; }
+.intensity-record-card strong { display:block; margin-top:8px; color:#fff; font-size:23px; line-height:1.05; }
+.intensity-record-card small { display:block; margin-top:8px; color:#d8f4fb; font-size:12px; }
+@media (max-width: 1200px) { .intensity-records-panel { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .intensity-records-panel { grid-template-columns: 1fr; } }
+
+</style>

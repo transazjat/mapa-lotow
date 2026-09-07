@@ -65,6 +65,13 @@ export async function downloadAchievementCard(
   const isContinents = achievement.family === 'continents'
   const isAirlines = achievement.family === 'airlines'
   const isAircraft = achievement.family === 'aircraft'
+  const isRoutes = achievement.family === 'routes'
+  const isDuration = achievement.family === 'duration'
+  const isAstronomical = achievement.family === 'astronomical'
+  const isIntensityYear = achievement.family === 'intensity_year'
+  const isIntensityMonth = achievement.family === 'intensity_month'
+  const isIntensityStreak = achievement.family === 'intensity_streak'
+  const isIntensityDay = achievement.family === 'intensity_day'
   const formatter = new Intl.NumberFormat('pl-PL')
 
   const background = ctx.createLinearGradient(0, 0, 1080, 1080)
@@ -116,7 +123,21 @@ export async function downloadAchievementCard(
             ? `${formatter.format(achievement.threshold)} LINII LOTNICZYCH`
             : isAircraft
               ? `${formatter.format(achievement.threshold)} TYPÓW SAMOLOTÓW`
-              : `${achievement.threshold} LOTÓW`
+              : isRoutes
+                ? `${formatter.format(achievement.threshold)} TRAS`
+                : isDuration
+                  ? `${formatter.format(achievement.threshold)} H W POWIETRZU`
+                  : isAstronomical
+                    ? `${formatter.format(achievement.threshold)} KM`
+                    : isIntensityYear
+                      ? `${formatter.format(achievement.threshold)} LOTÓW / ROK`
+                      : isIntensityMonth
+                        ? `${formatter.format(achievement.threshold)} LOTÓW / MIESIĄC`
+                        : isIntensityStreak
+                          ? `${formatter.format(achievement.threshold)} DNI SERII`
+                          : isIntensityDay
+                            ? `${formatter.format(achievement.threshold)} LOTÓW / DZIEŃ`
+                            : `${achievement.threshold} LOTÓW`
 
   ctx.fillStyle = '#ffffff'
   ctx.font = '800 58px Arial, sans-serif'
@@ -134,7 +155,15 @@ export async function downloadAchievementCard(
             ? 'Kolejny przewoźnik w Twojej kolekcji'
             : isAircraft
               ? 'Kolejny typ samolotu w Twojej kolekcji'
-              : 'Kolejny lotniczy kamień milowy'
+              : isRoutes
+                ? 'Kolejne połączenia na Twojej mapie podróży'
+                : isDuration
+                  ? 'Kolejne godziny zapisane w Twojej historii lotów'
+                  : isAstronomical
+                    ? 'Kosmiczny kamień milowy Twoich podróży'
+                    : (isIntensityYear || isIntensityMonth || isIntensityStreak || isIntensityDay)
+                      ? 'Nowy rekord intensywności Twoich podróży'
+                      : 'Kolejny lotniczy kamień milowy'
 
   ctx.fillStyle = '#c9d8e6'
   ctx.font = '400 25px Arial, sans-serif'
@@ -156,7 +185,17 @@ export async function downloadAchievementCard(
             ? `${formatter.format(completedValue)} różnych linii lotniczych`
             : isAircraft
               ? `${formatter.format(completedValue)} różnych typów samolotów`
-              : `${formatter.format(completedValue)} odbytych lotów w historii`
+              : isRoutes
+                ? `${formatter.format(completedValue)} różnych tras lotniczych`
+                : isDuration
+                  ? `${formatter.format(completedValue)} godzin w powietrzu`
+                  : isAstronomical
+                    ? `${formatter.format(completedValue)} km w kosmicznej skali`
+                    : isIntensityStreak
+                      ? `${formatter.format(completedValue)} dni - rekord serii`
+                      : (isIntensityYear || isIntensityMonth || isIntensityDay)
+                        ? `${formatter.format(completedValue)} lotów - rekord intensywności`
+                        : `${formatter.format(completedValue)} odbytych lotów w historii`
 
   ctx.fillStyle = '#a9c2dc'
   ctx.font = '400 20px Arial, sans-serif'
@@ -198,7 +237,13 @@ export async function downloadAchievementCard(
             ? `mapa-lotow-${achievement.threshold}-linii-lotniczych.${format}`
             : isAircraft
               ? `mapa-lotow-${achievement.threshold}-typow-samolotow.${format}`
-              : `mapa-lotow-${achievement.threshold}-lotow.${format}`
+              : isRoutes
+                ? `mapa-lotow-${achievement.threshold}-tras.${format}`
+                : isAstronomical
+                  ? `mapa-lotow-${achievement.threshold}-astronomiczne-km.${format}`
+                  : (isIntensityYear || isIntensityMonth || isIntensityStreak || isIntensityDay)
+                    ? `mapa-lotow-intensywnosc-${achievement.family}-${achievement.threshold}.${format}`
+                    : `mapa-lotow-${achievement.threshold}-lotow.${format}`
 
   downloadBlob(blob, filename)
 }
