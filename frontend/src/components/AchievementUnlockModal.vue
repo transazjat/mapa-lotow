@@ -4,6 +4,7 @@ import { computed } from 'vue'
 import type {
   AchievementItem,
   AircraftCollectionAchievementItem,
+  SpecialAchievementItem,
 } from '../types/achievement'
 
 import {
@@ -11,9 +12,10 @@ import {
   getAircraftManufacturerBadgeImage,
   getAircraftOriginBadgeImage,
   getAircraftUniqueBadgeImage,
+  getSpecialBadgeImage,
 } from '../utils/achievementBadges'
 
-type UnlockItem = AchievementItem | AircraftCollectionAchievementItem
+type UnlockItem = AchievementItem | AircraftCollectionAchievementItem | SpecialAchievementItem
 
 const props = defineProps<{
   achievements: UnlockItem[]
@@ -35,7 +37,12 @@ function isThresholdAchievement(item: UnlockItem): item is AchievementItem {
   return 'threshold' in item && 'family' in item
 }
 
+function isSpecialAchievement(item: UnlockItem): item is SpecialAchievementItem {
+  return 'category' in item && item.key.startsWith('special_')
+}
+
 function itemLabel(item: UnlockItem): string {
+  if (isSpecialAchievement(item)) return item.label
   if (!isThresholdAchievement(item)) return item.label
 
   if (item.family === 'distance') return `${item.threshold.toLocaleString('pl-PL')} km`
@@ -55,6 +62,8 @@ function itemLabel(item: UnlockItem): string {
 }
 
 function itemDescription(item: UnlockItem): string {
+  if (isSpecialAchievement(item)) return item.description
+
   if (isThresholdAchievement(item)) {
     if (item.family === 'distance') return 'Przekroczyłeś kolejny próg łącznego dystansu w powietrzu.'
     if (item.family === 'airports') return 'Do Twojej mapy dołączył kolejny próg liczby odwiedzonych lotnisk.'
@@ -79,6 +88,8 @@ function itemDescription(item: UnlockItem): string {
 }
 
 function itemImage(item: UnlockItem): string | null {
+  if (isSpecialAchievement(item)) return getSpecialBadgeImage(item.slug)
+
   if (isThresholdAchievement(item)) {
     return getAchievementBadgeImage(item.family, item.threshold)
   }

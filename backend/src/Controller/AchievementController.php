@@ -144,6 +144,37 @@ final class AchievementController
     private const INTENSITY_DAY_THRESHOLDS = [2, 3, 4, 5, 6, 7, 8, 10, 12, 15];
 
 
+    private const SPECIAL_ACHIEVEMENTS = [
+        ['slug' => 'new-year-air', 'label' => 'Nowy Rok w powietrzu', 'category' => 'calendar', 'description' => 'Start 31 grudnia i lądowanie 1 stycznia następnego roku, zgodnie z lokalnymi datami lotnisk wylotu i przylotu.', 'order' => 1],
+        ['slug' => 'leap-day', 'label' => '29 lutego', 'category' => 'calendar', 'description' => 'Odbyłeś lot rozpoczynający się 29 lutego - w dniu, który pojawia się w kalendarzu tylko w roku przestępnym.', 'order' => 2],
+        ['slug' => 'friday-13', 'label' => 'Piątek trzynastego', 'category' => 'calendar', 'description' => 'Odbyłeś lot rozpoczynający się w piątek, 13. dnia miesiąca.', 'order' => 3],
+        ['slug' => 'christmas-air', 'label' => 'Boże Narodzenie w powietrzu', 'category' => 'calendar', 'description' => 'Odbyłeś lot rozpoczynający się 25 grudnia.', 'order' => 4],
+        ['slug' => 'history-5', 'label' => 'Pierwsze pięć lat', 'category' => 'history', 'description' => 'Pierwszy lot odbyty po upływie pięciu pełnych lat od najstarszego lotu w Twojej historii.', 'order' => 5],
+        ['slug' => 'history-10', 'label' => 'Dekada w powietrzu', 'category' => 'history', 'description' => 'Pierwszy lot odbyty po upływie dziesięciu pełnych lat od najstarszego lotu w Twojej historii.', 'order' => 6],
+        ['slug' => 'history-15', 'label' => 'Piętnaście lat podróży', 'category' => 'history', 'description' => 'Pierwszy lot odbyty po upływie piętnastu pełnych lat od najstarszego lotu w Twojej historii.', 'order' => 7],
+        ['slug' => 'history-20', 'label' => 'Dwie dekady w powietrzu', 'category' => 'history', 'description' => 'Pierwszy lot odbyty po upływie dwudziestu pełnych lat od najstarszego lotu w Twojej historii.', 'order' => 8],
+        ['slug' => 'history-25', 'label' => 'Ćwierć wieku w powietrzu', 'category' => 'history', 'description' => 'Pierwszy lot odbyty po upływie dwudziestu pięciu pełnych lat od najstarszego lotu w Twojej historii.', 'order' => 9],
+        ['slug' => 'route-10', 'label' => 'Dziesięć razy tą samą trasą', 'category' => 'repeat', 'description' => 'Dowolna jedna trasa osiągnęła co najmniej dziesięć odbytych lotów. W szczegółach pokazujemy wszystkie trasy spełniające warunek.', 'order' => 10],
+        ['slug' => 'airline-25', 'label' => 'Ta sama linia 25 razy', 'category' => 'repeat', 'description' => 'Co najmniej 25 odbytych segmentów zostało obsłużonych przez tego samego przewoźnika.', 'order' => 11],
+        ['slug' => 'aircraft-25', 'label' => 'Ten sam typ samolotu 25 razy', 'category' => 'repeat', 'description' => 'Co najmniej 25 odbytych lotów wykonano tym samym typem samolotu.', 'order' => 12],
+        ['slug' => 'country-airports-10', 'label' => '10 różnych lotnisk w jednym kraju', 'category' => 'repeat', 'description' => 'W jednym państwie odwiedziłeś co najmniej dziesięć różnych lotnisk.', 'order' => 13],
+        ['slug' => 'airport-50', 'label' => 'Lot z tego samego lotniska 50 razy', 'category' => 'repeat', 'description' => 'Jedno lotnisko wystąpiło w co najmniej 50 odbytych lotach jako port startu lub lądowania.', 'order' => 14],
+        ['slug' => 'return-after-years', 'label' => 'Powrót po latach', 'category' => 'repeat', 'description' => 'Powróciłeś na lotnisko po co najmniej dziesięciu pełnych latach bez żadnego startu ani lądowania na tym lotnisku.', 'order' => 15],
+        ['slug' => 'first-intercontinental', 'label' => 'Pierwszy lot międzykontynentalny', 'category' => 'geography', 'description' => 'Pierwszy zapisany lot, którego lotniska startu i lądowania leżą na różnych kontynentach.', 'order' => 16],
+        ['slug' => 'atlantic', 'label' => 'Przekroczenie Atlantyku', 'category' => 'geography', 'description' => 'Co najmniej jedna z Twoich tras prowadziła pomiędzy Ameryką a Europą lub Afryką, czyli przez Atlantyk.', 'order' => 17],
+        ['slug' => 'pacific', 'label' => 'Przekroczenie Pacyfiku', 'category' => 'geography', 'description' => 'Co najmniej jedna z Twoich tras prowadziła pomiędzy Ameryką a Azją lub Oceanią, czyli przez Pacyfik.', 'order' => 18],
+        ['slug' => 'indian-ocean', 'label' => 'Przekroczenie Oceanu Indyjskiego', 'category' => 'geography', 'description' => 'Najkrótszy łuk trasy przecina obszar Oceanu Indyjskiego, Morza Arabskiego lub Zatoki Bengalskiej.', 'order' => 19],
+        ['slug' => 'arctic-ocean', 'label' => 'Przekroczenie Oceanu Arktycznego', 'category' => 'geography', 'description' => 'Co najmniej 100 km najkrótszego łuku trasy przebiega nad konserwatywnie zdefiniowanym obszarem wód Oceanu Arktycznego.', 'order' => 20],
+        ['slug' => 'polar-route', 'label' => 'Trasa polarna', 'category' => 'geography', 'description' => 'Międzykontynentalny lot, którego najkrótszy łuk prowadzi co najmniej 300 km na północ od 75°N.', 'order' => 21],
+        ['slug' => 'north-pole', 'label' => 'Nad Biegunem Północnym', 'category' => 'geography', 'description' => 'Międzykontynentalny lot, którego najkrótszy łuk prowadzi co najmniej 100 km na północ od 85°N.', 'order' => 22],
+        ['slug' => 'equator', 'label' => 'Przekroczenie równika', 'category' => 'geography', 'description' => 'Trasa lotu połączyła lotniska leżące po przeciwnych stronach równika.', 'order' => 23],
+        ['slug' => 'date-line', 'label' => 'Przekroczenie linii zmiany daty', 'category' => 'geography', 'description' => 'Najkrótszy łuk trasy przekroczył okolice południka 180° i międzynarodowej linii zmiany daty.', 'order' => 24],
+    ];
+
+    /** @var array<int,array<string,array{earned_at:?string,details:array<int,array{label:string,value:string,note:?string}>}>> */
+    private array $specialAnalysisCache = [];
+
+
     private const AIRCRAFT_MANUFACTURERS = [
         ['slug' => 'airbus', 'label' => 'Airbus', 'manufacturers' => ['Airbus'], 'order' => 1],
         ['slug' => 'boeing', 'label' => 'Boeing', 'manufacturers' => ['Boeing'], 'order' => 2],
@@ -255,6 +286,7 @@ final class AchievementController
             ...$state['intensity']['month']['achievements'],
             ...$state['intensity']['streak']['achievements'],
             ...$state['intensity']['day']['achievements'],
+            ...$state['special']['achievements'],
             ...$state['aircraft_manufacturers']['achievements'],
             ...$state['aircraft_origins']['achievements'],
             ...$state['aircraft_unique']['achievements'],
@@ -358,6 +390,10 @@ final class AchievementController
             $allowedKeys['intensity_day_' . $threshold] = true;
         }
 
+        foreach (self::SPECIAL_ACHIEVEMENTS as $definition) {
+            $allowedKeys['special_' . $definition['slug']] = true;
+        }
+
         foreach (self::AIRCRAFT_MANUFACTURERS as $definition) {
             $allowedKeys['aircraft_manufacturer_' . $definition['slug']] = true;
         }
@@ -432,6 +468,7 @@ final class AchievementController
             ...$this->syncIntensityMonthAchievements($userId),
             ...$this->syncIntensityStreakAchievements($userId),
             ...$this->syncIntensityDayAchievements($userId),
+            ...$this->syncSpecialAchievements($userId),
             ...$this->syncAircraftManufacturerAchievements($userId),
             ...$this->syncAircraftOriginAchievements($userId),
             ...$this->syncAircraftUniqueAchievements($userId),
@@ -659,6 +696,20 @@ final class AchievementController
             self::INTENSITY_DAY_THRESHOLDS,
             $record['value'],
             fn(int $threshold): ?string => $this->intensityThresholdEarnedAt($userId, 'day', $threshold)
+        );
+    }
+
+    /** @return list<string> */
+    private function syncSpecialAchievements(int $userId): array
+    {
+        $analysis = $this->analyzeSpecialAchievements($userId);
+
+        return $this->syncCollectionAchievements(
+            $userId,
+            'special',
+            self::SPECIAL_ACHIEVEMENTS,
+            'special_',
+            static fn(array $definition): ?string => $analysis[$definition['slug']]['earned_at'] ?? null
         );
     }
 
@@ -1826,6 +1877,598 @@ final class AchievementController
         ];
     }
 
+    private function buildSpecialState(int $userId): array
+    {
+        $analysis = $this->analyzeSpecialAchievements($userId);
+
+        $stmt = $this->pdo->prepare(
+            "
+            SELECT achievement_key, threshold_value, earned_at, notified_at
+            FROM ml_user_achievements
+            WHERE user_id = :user_id
+              AND family = 'special'
+            "
+        );
+        $stmt->execute(['user_id' => $userId]);
+
+        $earnedRows = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $earnedRows[(string) $row['achievement_key']] = $row;
+        }
+
+        $achievements = [];
+        $pendingUnlocks = [];
+        $lastEarned = null;
+        $earnedCount = 0;
+
+        foreach (self::SPECIAL_ACHIEVEMENTS as $definition) {
+            $key = 'special_' . $definition['slug'];
+            $row = $earnedRows[$key] ?? null;
+            $earned = $row !== null;
+            $details = $analysis[$definition['slug']]['details'] ?? [];
+
+            $item = [
+                'key' => $key,
+                'label' => $definition['label'],
+                'slug' => $definition['slug'],
+                'order' => $definition['order'],
+                'category' => $definition['category'],
+                'description' => $definition['description'],
+                'status' => $earned ? 'active' : 'locked',
+                'earned' => $earned,
+                'active' => $earned,
+                'earned_at' => $earned ? (string) $row['earned_at'] : null,
+                'notified_at' => $earned && $row['notified_at'] !== null ? (string) $row['notified_at'] : null,
+                'details' => $details,
+            ];
+
+            $achievements[] = $item;
+            if ($earned) {
+                $earnedCount++;
+                if ($row['notified_at'] === null) {
+                    $pendingUnlocks[] = $item;
+                }
+                if ($lastEarned === null || strcmp((string) $item['earned_at'], (string) $lastEarned['earned_at']) >= 0) {
+                    $lastEarned = $item;
+                }
+            }
+        }
+
+        return [
+            'achievements' => $achievements,
+            'pending_unlocks' => $pendingUnlocks,
+            'summary' => [
+                'earned_count' => $earnedCount,
+                'active_count' => $earnedCount,
+                'total_count' => count(self::SPECIAL_ACHIEVEMENTS),
+                'last_earned' => $lastEarned,
+            ],
+        ];
+    }
+
+    /**
+     * Analiza specjalnych osiągnięć jest wykonywana wyłącznie na odbytych lotach.
+     * Daty startu i lądowania w ml_flights są datami lokalnymi lotnisk, dlatego
+     * osiągnięcie noworoczne zachowuje poprawną logikę stref czasowych.
+     *
+     * @return array<string,array{earned_at:?string,details:array<int,array{label:string,value:string,note:?string}>}>
+     */
+    private function analyzeSpecialAchievements(int $userId): array
+    {
+        if (isset($this->specialAnalysisCache[$userId])) {
+            return $this->specialAnalysisCache[$userId];
+        }
+
+        $result = [];
+        foreach (self::SPECIAL_ACHIEVEMENTS as $definition) {
+            $result[$definition['slug']] = ['earned_at' => null, 'details' => []];
+        }
+
+        $stmt = $this->pdo->prepare(
+            "
+            SELECT
+                f.id,
+                f.departure_date,
+                COALESCE(f.departure_time, '00:00:00') AS departure_time,
+                f.arrival_date,
+                COALESCE(f.arrival_time, '00:00:00') AS arrival_time,
+                f.departure_airport_id,
+                f.arrival_airport_id,
+                f.airline_id,
+                f.aircraft_type_id,
+                COALESCE(dep.iata_code, dep.icao_code, dep.name) AS departure_code,
+                COALESCE(arr.iata_code, arr.icao_code, arr.name) AS arrival_code,
+                dep.name AS departure_name,
+                arr.name AS arrival_name,
+                dep.country_id AS departure_country_id,
+                arr.country_id AS arrival_country_id,
+                COALESCE(dep_country.name, dep.country_name, '—') AS departure_country,
+                COALESCE(arr_country.name, arr.country_name, '—') AS arrival_country,
+                dep_country.continent_code AS departure_continent,
+                arr_country.continent_code AS arrival_continent,
+                dep.latitude AS departure_latitude,
+                dep.longitude AS departure_longitude,
+                arr.latitude AS arrival_latitude,
+                arr.longitude AS arrival_longitude,
+                al.name AS airline_name,
+                ac.name AS aircraft_name
+            FROM ml_flights f
+            JOIN ml_airports dep ON dep.id = f.departure_airport_id
+            JOIN ml_airports arr ON arr.id = f.arrival_airport_id
+            LEFT JOIN ml_countries dep_country ON dep_country.id = dep.country_id
+            LEFT JOIN ml_countries arr_country ON arr_country.id = arr.country_id
+            LEFT JOIN ml_airlines al ON al.id = f.airline_id
+            LEFT JOIN ml_aircraft_types ac ON ac.id = f.aircraft_type_id
+            WHERE f.user_id = :user_id
+              AND f.departure_date <= CURDATE()
+            ORDER BY f.departure_date ASC, COALESCE(f.departure_time, '00:00:00') ASC, f.id ASC
+            "
+        );
+        $stmt->execute(['user_id' => $userId]);
+        $flights = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if ($flights === []) {
+            return $this->specialAnalysisCache[$userId] = $result;
+        }
+
+        $firstDate = new \DateTimeImmutable((string) $flights[0]['departure_date']);
+        foreach ([5 => 'history-5', 10 => 'history-10', 15 => 'history-15', 20 => 'history-20', 25 => 'history-25'] as $years => $slug) {
+            $anniversary = $firstDate->modify('+' . $years . ' years')->format('Y-m-d');
+            foreach ($flights as $flight) {
+                if ((string) $flight['departure_date'] >= $anniversary) {
+                    $result[$slug]['earned_at'] = $this->specialDepartureTimestamp($flight);
+                    $result[$slug]['details'][] = ['label' => 'Pierwszy zapisany lot', 'value' => $firstDate->format('d.m.Y'), 'note' => null];
+                    $result[$slug]['details'][] = ['label' => 'Lot rocznicowy', 'value' => $this->specialRouteLabel($flight), 'note' => (string) $flight['departure_date']];
+                    break;
+                }
+            }
+        }
+
+        $routeCounts = [];
+        $airlineCounts = [];
+        $aircraftCounts = [];
+        $countryAirports = [];
+        $airportCounts = [];
+        $airportLabels = [];
+        $airportEvents = [];
+
+        foreach ($flights as $flight) {
+            $depStamp = $this->specialDepartureTimestamp($flight);
+
+            if (
+                $result['new-year-air']['earned_at'] === null &&
+                substr((string) $flight['departure_date'], 5) === '12-31' &&
+                $flight['arrival_date'] !== null &&
+                substr((string) $flight['arrival_date'], 5) === '01-01' &&
+                ((int) substr((string) $flight['arrival_date'], 0, 4)) === ((int) substr((string) $flight['departure_date'], 0, 4)) + 1
+            ) {
+                $result['new-year-air']['earned_at'] = $depStamp;
+                $result['new-year-air']['details'] = [
+                    ['label' => 'Lot', 'value' => $this->specialRouteLabel($flight), 'note' => null],
+                    ['label' => 'Start', 'value' => (string) $flight['departure_date'] . ' ' . (string) $flight['departure_time'], 'note' => 'czas lokalny lotniska wylotu'],
+                    ['label' => 'Lądowanie', 'value' => (string) $flight['arrival_date'] . ' ' . (string) $flight['arrival_time'], 'note' => 'czas lokalny lotniska przylotu'],
+                ];
+            }
+
+            $departureDate = new \DateTimeImmutable((string) $flight['departure_date']);
+
+            if ($result['leap-day']['earned_at'] === null && $departureDate->format('m-d') === '02-29') {
+                $result['leap-day']['earned_at'] = $depStamp;
+                $result['leap-day']['details'] = [[
+                    'label' => 'Lot',
+                    'value' => $this->specialRouteLabel($flight),
+                    'note' => $departureDate->format('d.m.Y'),
+                ]];
+            }
+
+            if ($result['friday-13']['earned_at'] === null && $departureDate->format('d') === '13' && $departureDate->format('N') === '5') {
+                $result['friday-13']['earned_at'] = $depStamp;
+                $result['friday-13']['details'] = [[
+                    'label' => 'Lot',
+                    'value' => $this->specialRouteLabel($flight),
+                    'note' => $departureDate->format('d.m.Y'),
+                ]];
+            }
+
+            if ($result['christmas-air']['earned_at'] === null && $departureDate->format('m-d') === '12-25') {
+                $result['christmas-air']['earned_at'] = $depStamp;
+                $result['christmas-air']['details'] = [[
+                    'label' => 'Lot',
+                    'value' => $this->specialRouteLabel($flight),
+                    'note' => $departureDate->format('d.m.Y'),
+                ]];
+            }
+
+            $depContinent = (string) ($flight['departure_continent'] ?? '');
+            $arrContinent = (string) ($flight['arrival_continent'] ?? '');
+            if ($result['first-intercontinental']['earned_at'] === null && $depContinent !== '' && $arrContinent !== '' && $depContinent !== $arrContinent) {
+                $result['first-intercontinental']['earned_at'] = $depStamp;
+                $result['first-intercontinental']['details'] = [['label' => 'Lot', 'value' => $this->specialRouteLabel($flight), 'note' => (string) $flight['departure_date']]];
+            }
+
+            if ($result['atlantic']['earned_at'] === null && $this->specialOceanPair($depContinent, $arrContinent, 'atlantic')) {
+                $result['atlantic']['earned_at'] = $depStamp;
+                $result['atlantic']['details'] = [['label' => 'Pierwszy kwalifikujący lot', 'value' => $this->specialRouteLabel($flight), 'note' => (string) $flight['departure_date']]];
+            }
+            if ($result['pacific']['earned_at'] === null && $this->specialOceanPair($depContinent, $arrContinent, 'pacific')) {
+                $result['pacific']['earned_at'] = $depStamp;
+                $result['pacific']['details'] = [['label' => 'Pierwszy kwalifikujący lot', 'value' => $this->specialRouteLabel($flight), 'note' => (string) $flight['departure_date']]];
+            }
+            if ($result['indian-ocean']['earned_at'] === null && $this->specialIndianOceanFlight($flight)) {
+                $result['indian-ocean']['earned_at'] = $depStamp;
+                $result['indian-ocean']['details'] = [['label' => 'Pierwszy kwalifikujący lot', 'value' => $this->specialRouteLabel($flight), 'note' => (string) $flight['departure_date']]];
+            }
+
+            $arcticDistance = $this->specialGreatCircleDistanceInAreaKm($flight, fn(float $lat, float $lon): bool => $this->specialPointInArcticOcean($lat, $lon));
+            if ($result['arctic-ocean']['earned_at'] === null && $arcticDistance >= 100.0) {
+                $result['arctic-ocean']['earned_at'] = $depStamp;
+                $result['arctic-ocean']['details'] = [[
+                    'label' => 'Pierwszy kwalifikujący lot',
+                    'value' => $this->specialRouteLabel($flight),
+                    'note' => sprintf('około %.0f km nad wodami Arktyki', $arcticDistance),
+                ]];
+            }
+
+            $isIntercontinental = $depContinent !== '' && $arrContinent !== '' && $depContinent !== $arrContinent;
+            if ($isIntercontinental) {
+                $north75Distance = $this->specialGreatCircleDistanceInLatitudeBandKm($flight, 75.0);
+                if ($result['polar-route']['earned_at'] === null && $north75Distance >= 300.0) {
+                    $result['polar-route']['earned_at'] = $depStamp;
+                    $result['polar-route']['details'] = [[
+                        'label' => 'Pierwszy kwalifikujący lot',
+                        'value' => $this->specialRouteLabel($flight),
+                        'note' => sprintf('około %.0f km na północ od 75°N', $north75Distance),
+                    ]];
+                }
+
+                $north85Distance = $this->specialGreatCircleDistanceInLatitudeBandKm($flight, 85.0);
+                if ($result['north-pole']['earned_at'] === null && $north85Distance >= 100.0) {
+                    $result['north-pole']['earned_at'] = $depStamp;
+                    $result['north-pole']['details'] = [[
+                        'label' => 'Pierwszy kwalifikujący lot',
+                        'value' => $this->specialRouteLabel($flight),
+                        'note' => sprintf('około %.0f km na północ od 85°N', $north85Distance),
+                    ]];
+                }
+            }
+
+            $depLat = (float) $flight['departure_latitude'];
+            $arrLat = (float) $flight['arrival_latitude'];
+            if ($result['equator']['earned_at'] === null && (($depLat < 0 && $arrLat > 0) || ($depLat > 0 && $arrLat < 0))) {
+                $result['equator']['earned_at'] = $depStamp;
+                $result['equator']['details'] = [['label' => 'Lot', 'value' => $this->specialRouteLabel($flight), 'note' => (string) $flight['departure_date']]];
+            }
+
+            $depLon = (float) $flight['departure_longitude'];
+            $arrLon = (float) $flight['arrival_longitude'];
+            if ($result['date-line']['earned_at'] === null && abs($depLon - $arrLon) > 180.0) {
+                $result['date-line']['earned_at'] = $depStamp;
+                $result['date-line']['details'] = [['label' => 'Lot', 'value' => $this->specialRouteLabel($flight), 'note' => (string) $flight['departure_date']]];
+            }
+
+            $routeKey = (int) $flight['departure_airport_id'] . ':' . (int) $flight['arrival_airport_id'];
+            if (!isset($routeCounts[$routeKey])) {
+                $routeCounts[$routeKey] = ['count' => 0, 'label' => $this->specialRouteLabel($flight)];
+            }
+            $routeCounts[$routeKey]['count']++;
+            if ($routeCounts[$routeKey]['count'] === 10 && $result['route-10']['earned_at'] === null) {
+                $result['route-10']['earned_at'] = $depStamp;
+            }
+
+            if ($flight['airline_id'] !== null) {
+                $key = (int) $flight['airline_id'];
+                $airlineCounts[$key] ??= ['count' => 0, 'label' => (string) ($flight['airline_name'] ?? ('Linia #' . $key))];
+                $airlineCounts[$key]['count']++;
+                if ($airlineCounts[$key]['count'] === 25 && $result['airline-25']['earned_at'] === null) {
+                    $result['airline-25']['earned_at'] = $depStamp;
+                }
+            }
+
+            if ($flight['aircraft_type_id'] !== null) {
+                $key = (int) $flight['aircraft_type_id'];
+                $aircraftCounts[$key] ??= ['count' => 0, 'label' => (string) ($flight['aircraft_name'] ?? ('Typ #' . $key))];
+                $aircraftCounts[$key]['count']++;
+                if ($aircraftCounts[$key]['count'] === 25 && $result['aircraft-25']['earned_at'] === null) {
+                    $result['aircraft-25']['earned_at'] = $depStamp;
+                }
+            }
+
+            foreach ([
+                ['id' => (int) $flight['departure_airport_id'], 'code' => (string) $flight['departure_code'], 'name' => (string) $flight['departure_name'], 'country_id' => $flight['departure_country_id'], 'country' => (string) $flight['departure_country'], 'date' => (string) $flight['departure_date'], 'time' => (string) $flight['departure_time']],
+                ['id' => (int) $flight['arrival_airport_id'], 'code' => (string) $flight['arrival_code'], 'name' => (string) $flight['arrival_name'], 'country_id' => $flight['arrival_country_id'], 'country' => (string) $flight['arrival_country'], 'date' => (string) ($flight['arrival_date'] ?? $flight['departure_date']), 'time' => (string) $flight['arrival_time']],
+            ] as $airportEvent) {
+                $airportLabels[$airportEvent['id']] = trim($airportEvent['code'] . ' · ' . $airportEvent['name']);
+                $airportEvents[] = $airportEvent;
+
+                if ($airportEvent['country_id'] !== null) {
+                    $countryId = (int) $airportEvent['country_id'];
+                    $countryAirports[$countryId] ??= ['airports' => [], 'label' => $airportEvent['country']];
+                    $before = count($countryAirports[$countryId]['airports']);
+                    $countryAirports[$countryId]['airports'][$airportEvent['id']] = true;
+                    if ($before < 10 && count($countryAirports[$countryId]['airports']) === 10 && $result['country-airports-10']['earned_at'] === null) {
+                        $result['country-airports-10']['earned_at'] = $airportEvent['date'] . ' ' . $airportEvent['time'];
+                    }
+                }
+            }
+
+            foreach (array_unique([(int) $flight['departure_airport_id'], (int) $flight['arrival_airport_id']]) as $airportId) {
+                $airportCounts[$airportId] = ($airportCounts[$airportId] ?? 0) + 1;
+                if ($airportCounts[$airportId] === 50 && $result['airport-50']['earned_at'] === null) {
+                    $result['airport-50']['earned_at'] = $depStamp;
+                }
+            }
+        }
+
+        $this->specialAttachCountDetails($result['route-10'], $routeCounts, 10, 'Trasa');
+        $this->specialAttachCountDetails($result['airline-25'], $airlineCounts, 25, 'Linia');
+        $this->specialAttachCountDetails($result['aircraft-25'], $aircraftCounts, 25, 'Typ samolotu');
+
+        foreach ($countryAirports as $country) {
+            $count = count($country['airports']);
+            if ($count >= 10) {
+                $result['country-airports-10']['details'][] = ['label' => 'Państwo', 'value' => (string) $country['label'], 'note' => $count . ' różnych lotnisk'];
+            }
+        }
+        usort($result['country-airports-10']['details'], static fn(array $a, array $b): int => strcmp($a['value'], $b['value']));
+
+        arsort($airportCounts);
+        foreach ($airportCounts as $airportId => $count) {
+            if ($count < 50) continue;
+            $result['airport-50']['details'][] = ['label' => 'Lotnisko', 'value' => $airportLabels[$airportId] ?? ('Lotnisko #' . $airportId), 'note' => $count . ' lotów'];
+        }
+
+        usort($airportEvents, static fn(array $a, array $b): int => strcmp($a['date'] . ' ' . $a['time'], $b['date'] . ' ' . $b['time']));
+        $lastVisit = [];
+        foreach ($airportEvents as $event) {
+            $airportId = (int) $event['id'];
+            $date = new \DateTimeImmutable((string) $event['date']);
+            if (isset($lastVisit[$airportId])) {
+                $previous = $lastVisit[$airportId];
+                $tenYearsLater = $previous->modify('+10 years');
+                if ($date >= $tenYearsLater) {
+                    $earnedAt = $event['date'] . ' ' . $event['time'];
+                    if ($result['return-after-years']['earned_at'] === null) {
+                        $result['return-after-years']['earned_at'] = $earnedAt;
+                    }
+                    $years = $previous->diff($date)->y;
+                    $result['return-after-years']['details'][] = [
+                        'label' => $airportLabels[$airportId] ?? ('Lotnisko #' . $airportId),
+                        'value' => $previous->format('d.m.Y') . ' → ' . $date->format('d.m.Y'),
+                        'note' => $years . ' lat przerwy',
+                    ];
+                }
+            }
+            $lastVisit[$airportId] = $date;
+        }
+
+        return $this->specialAnalysisCache[$userId] = $result;
+    }
+
+    private function specialDepartureTimestamp(array $flight): string
+    {
+        return (string) $flight['departure_date'] . ' ' . (string) $flight['departure_time'];
+    }
+
+    private function specialRouteLabel(array $flight): string
+    {
+        return trim((string) $flight['departure_code']) . ' – ' . trim((string) $flight['arrival_code']);
+    }
+
+    private function specialOceanPair(string $departure, string $arrival, string $ocean): bool
+    {
+        $americas = ['NA', 'SA'];
+        if ($ocean === 'atlantic') {
+            $east = ['EU', 'AF'];
+            return (in_array($departure, $americas, true) && in_array($arrival, $east, true)) ||
+                (in_array($arrival, $americas, true) && in_array($departure, $east, true));
+        }
+
+        $west = ['AS', 'OC'];
+        return (in_array($departure, $americas, true) && in_array($arrival, $west, true)) ||
+            (in_array($arrival, $americas, true) && in_array($departure, $west, true));
+    }
+
+    private function specialIndianOceanFlight(array $flight): bool
+    {
+        $lat1 = (float) $flight['departure_latitude'];
+        $lon1 = (float) $flight['departure_longitude'];
+        $lat2 = (float) $flight['arrival_latitude'];
+        $lon2 = (float) $flight['arrival_longitude'];
+
+        if (!is_finite($lat1) || !is_finite($lon1) || !is_finite($lat2) || !is_finite($lon2)) {
+            return false;
+        }
+
+        // Próbkujemy najkrótszy łuk wielkiego koła zamiast używać średniego punktu
+        // i pary kontynentów. Dzięki temu np. DOH-JNB nie jest fałszywie uznawany
+        // za Ocean Indyjski, a DOH-RGN przechodzi przez obszar Morza Arabskiego.
+        foreach ($this->specialGreatCirclePoints($lat1, $lon1, $lat2, $lon2, 72) as [$lat, $lon]) {
+            if ($this->specialPointInIndianOcean($lat, $lon)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** @return array<int,array{0:float,1:float}> */
+    private function specialGreatCirclePoints(float $lat1, float $lon1, float $lat2, float $lon2, int $segments = 72): array
+    {
+        $toVector = static function (float $lat, float $lon): array {
+            $phi = deg2rad($lat);
+            $lambda = deg2rad($lon);
+            return [cos($phi) * cos($lambda), cos($phi) * sin($lambda), sin($phi)];
+        };
+
+        $a = $toVector($lat1, $lon1);
+        $b = $toVector($lat2, $lon2);
+        $dot = max(-1.0, min(1.0, $a[0] * $b[0] + $a[1] * $b[1] + $a[2] * $b[2]));
+        $omega = acos($dot);
+        $points = [];
+
+        for ($i = 0; $i <= $segments; $i++) {
+            $t = $segments === 0 ? 0.0 : $i / $segments;
+            if ($omega < 1.0e-9) {
+                $v = $a;
+            } else {
+                $sinOmega = sin($omega);
+                $s1 = sin((1.0 - $t) * $omega) / $sinOmega;
+                $s2 = sin($t * $omega) / $sinOmega;
+                $v = [
+                    $s1 * $a[0] + $s2 * $b[0],
+                    $s1 * $a[1] + $s2 * $b[1],
+                    $s1 * $a[2] + $s2 * $b[2],
+                ];
+            }
+
+            $lat = rad2deg(atan2($v[2], sqrt($v[0] * $v[0] + $v[1] * $v[1])));
+            $lon = rad2deg(atan2($v[1], $v[0]));
+            $points[] = [$lat, $lon];
+        }
+
+        return $points;
+    }
+
+    private function specialPointInIndianOcean(float $lat, float $lon): bool
+    {
+        // Przybliżone, rozłączne obszary wodne. Celowo nie używamy jednego
+        // ogromnego prostokąta, który obejmowałby ląd Afryki, Arabii i Indii.
+        $polygons = [
+            // Morze Arabskie / północno-zachodni Ocean Indyjski.
+            [[5.0, 48.0], [24.0, 55.0], [26.0, 63.0], [23.0, 68.0], [15.0, 74.0], [5.0, 76.0], [-5.0, 60.0]],
+            // Zatoka Bengalska / Morze Andamańskie.
+            [[5.0, 78.0], [20.0, 80.0], [23.0, 88.0], [18.0, 98.0], [5.0, 101.0], [-5.0, 90.0]],
+            // Centralny i południowy Ocean Indyjski.
+            [[-58.0, 20.0], [-5.0, 38.0], [8.0, 50.0], [8.0, 100.0], [-12.0, 120.0], [-58.0, 120.0]],
+        ];
+
+        foreach ($polygons as $polygon) {
+            if ($this->specialPointInPolygon($lat, $lon, $polygon)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function specialPointInArcticOcean(float $lat, float $lon): bool
+    {
+        // Konserwatywna definicja wód Oceanu Arktycznego: centralny basen oraz
+        // główne morza arktyczne. Celowo nie zaliczamy Morza Norweskiego ani
+        // północnego Atlantyku, aby zwykłe loty przez Islandię/Skandynawię nie
+        // odblokowywały osiągnięcia. Obszary są przybliżeniem do analizy tras,
+        // a nie granicą hydrograficzną do celów nawigacyjnych.
+        if ($lat < 68.0) {
+            return false;
+        }
+
+        // Centralny basen arktyczny. Ograniczamy okolice północnej Grenlandii,
+        // by nie liczyć oczywistego przelotu nad lądem jako oceanu.
+        if ($lat >= 82.0) {
+            $overNorthGreenland = $lat <= 84.5 && $lon >= -75.0 && $lon <= -10.0;
+            return !$overNorthGreenland;
+        }
+
+        $polygons = [
+            // Morze Barentsa.
+            [[68.0, 15.0], [82.0, 15.0], [82.0, 65.0], [74.0, 65.0], [68.0, 45.0]],
+            // Morze Karskie i Łaptiewów.
+            [[70.0, 55.0], [82.0, 55.0], [82.0, 145.0], [72.0, 145.0], [70.0, 100.0]],
+            // Morze Wschodniosyberyjskie i zachodnie Morze Czukockie.
+            [[68.0, 145.0], [82.0, 145.0], [82.0, 180.0], [68.0, 180.0]],
+            // Wschodnie Morze Czukockie i Morze Beauforta.
+            [[68.0, -180.0], [82.0, -180.0], [82.0, -120.0], [70.0, -120.0], [68.0, -150.0]],
+            // Północna część Morza Beauforta / zachodni skraj Archipelagu Arktycznego.
+            [[72.0, -140.0], [82.0, -140.0], [82.0, -95.0], [76.0, -95.0], [72.0, -120.0]],
+        ];
+
+        foreach ($polygons as $polygon) {
+            if ($this->specialPointInPolygon($lat, $lon, $polygon)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function specialGreatCircleDistanceInLatitudeBandKm(array $flight, float $minimumLatitude): float
+    {
+        return $this->specialGreatCircleDistanceInAreaKm(
+            $flight,
+            static fn(float $lat, float $lon): bool => $lat >= $minimumLatitude
+        );
+    }
+
+    private function specialGreatCircleDistanceInAreaKm(array $flight, callable $predicate): float
+    {
+        $lat1 = (float) $flight['departure_latitude'];
+        $lon1 = (float) $flight['departure_longitude'];
+        $lat2 = (float) $flight['arrival_latitude'];
+        $lon2 = (float) $flight['arrival_longitude'];
+
+        if (!is_finite($lat1) || !is_finite($lon1) || !is_finite($lat2) || !is_finite($lon2)) {
+            return 0.0;
+        }
+
+        $points = $this->specialGreatCirclePoints($lat1, $lon1, $lat2, $lon2, 360);
+        $distance = 0.0;
+        for ($i = 1, $count = count($points); $i < $count; $i++) {
+            [$prevLat, $prevLon] = $points[$i - 1];
+            [$lat, $lon] = $points[$i];
+
+            // Segment zaliczamy dopiero, gdy oba jego końce znajdują się w
+            // kwalifikującym obszarze. Dzięki temu granice nie dodają przypadkowych km.
+            if (!$predicate($prevLat, $prevLon) || !$predicate($lat, $lon)) {
+                continue;
+            }
+
+            $distance += $this->specialHaversineKm($prevLat, $prevLon, $lat, $lon);
+        }
+
+        return $distance;
+    }
+
+    private function specialHaversineKm(float $lat1, float $lon1, float $lat2, float $lon2): float
+    {
+        $earthRadiusKm = 6371.0088;
+        $phi1 = deg2rad($lat1);
+        $phi2 = deg2rad($lat2);
+        $deltaPhi = deg2rad($lat2 - $lat1);
+        $deltaLambda = deg2rad($lon2 - $lon1);
+        $a = sin($deltaPhi / 2.0) ** 2 + cos($phi1) * cos($phi2) * sin($deltaLambda / 2.0) ** 2;
+        return 2.0 * $earthRadiusKm * asin(min(1.0, sqrt($a)));
+    }
+
+    /** @param array<int,array{0:float,1:float}> $polygon */
+    private function specialPointInPolygon(float $lat, float $lon, array $polygon): bool
+    {
+        $inside = false;
+        $count = count($polygon);
+        for ($i = 0, $j = $count - 1; $i < $count; $j = $i++) {
+            [$latI, $lonI] = $polygon[$i];
+            [$latJ, $lonJ] = $polygon[$j];
+            $crosses = (($latI > $lat) !== ($latJ > $lat));
+            if (!$crosses) continue;
+
+            $intersectionLon = ($lonJ - $lonI) * ($lat - $latI) / (($latJ - $latI) ?: 1.0e-12) + $lonI;
+            if ($lon < $intersectionLon) {
+                $inside = !$inside;
+            }
+        }
+
+        return $inside;
+    }
+
+    /** @param array{earned_at:?string,details:array<int,array{label:string,value:string,note:?string}>} $target */
+    private function specialAttachCountDetails(array &$target, array $counts, int $threshold, string $label): void
+    {
+        uasort($counts, static fn(array $a, array $b): int => $b['count'] <=> $a['count']);
+        foreach ($counts as $row) {
+            if ((int) $row['count'] < $threshold) continue;
+            $target['details'][] = ['label' => $label, 'value' => (string) $row['label'], 'note' => (int) $row['count'] . ' lotów'];
+        }
+    }
+
     private function buildState(int $userId): array
     {
         $flightState = $this->buildFamilyState(
@@ -1908,6 +2551,7 @@ final class AchievementController
         $intensityMonthState = $this->buildFamilyState($userId, 'intensity_month', self::INTENSITY_MONTH_THRESHOLDS, $intensityMonthRecord['value']);
         $intensityStreakState = $this->buildFamilyState($userId, 'intensity_streak', self::INTENSITY_STREAK_THRESHOLDS, $intensityStreakRecord['value']);
         $intensityDayState = $this->buildFamilyState($userId, 'intensity_day', self::INTENSITY_DAY_THRESHOLDS, $intensityDayRecord['value']);
+        $specialState = $this->buildSpecialState($userId);
 
         $aircraftManufacturerState = $this->buildAircraftManufacturerState($userId);
         $aircraftOriginState = $this->buildAircraftOriginState($userId);
@@ -2003,6 +2647,7 @@ final class AchievementController
                     'record' => $intensityDayRecord,
                 ],
             ],
+            'special' => $specialState,
             'aircraft_manufacturers' => $aircraftManufacturerState,
             'aircraft_origins' => $aircraftOriginState,
             'aircraft_unique' => $aircraftUniqueState,

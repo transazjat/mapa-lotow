@@ -86,6 +86,7 @@ import type {
 import type {
   AchievementItem,
   AircraftCollectionAchievementItem,
+  SpecialAchievementItem,
 } from './types/achievement'
 
 setWorkerUrl(
@@ -1027,7 +1028,7 @@ const accountToken =
 const achievementsOpen =
   ref(false)
 
-type AchievementUnlockItem = AchievementItem | AircraftCollectionAchievementItem
+type AchievementUnlockItem = AchievementItem | AircraftCollectionAchievementItem | SpecialAchievementItem
 
 const achievementUnlocks =
   ref<AchievementUnlockItem[]>([])
@@ -2507,6 +2508,7 @@ async function syncFlightAchievements(): Promise<void> {
       ...state.intensity.month.pending_unlocks,
       ...state.intensity.streak.pending_unlocks,
       ...state.intensity.day.pending_unlocks,
+      ...state.special.pending_unlocks,
       ...state.aircraft_manufacturers.pending_unlocks,
       ...state.aircraft_origins.pending_unlocks,
       ...state.aircraft_unique.pending_unlocks,

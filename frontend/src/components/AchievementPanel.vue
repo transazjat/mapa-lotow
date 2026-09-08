@@ -9,6 +9,7 @@ import { getAchievements } from '../services/achievementsApi'
 import type {
   AchievementItem,
   AircraftCollectionAchievementItem,
+  SpecialAchievementItem,
   AchievementSummary,
   AchievementsResponse,
 } from '../types/achievement'
@@ -29,6 +30,7 @@ import {
   getDurationBadgeImage,
   getAstronomicalBadgeImage,
   getIntensityBadgeImage,
+  getSpecialBadgeImage,
 } from '../utils/achievementBadges'
 
 import AchievementSidebar from './achievements/AchievementSidebar.vue'
@@ -41,9 +43,12 @@ import AchievementLegend from './achievements/AchievementLegend.vue'
 import AchievementFamilyPlaceholder from './achievements/AchievementFamilyPlaceholder.vue'
 import AircraftCollectionDetailPanel from './achievements/AircraftCollectionDetailPanel.vue'
 import AircraftUniqueDetailPanel from './achievements/AircraftUniqueDetailPanel.vue'
+import SpecialAchievementGrid from './achievements/SpecialAchievementGrid.vue'
+import SpecialAchievementDetailPanel from './achievements/SpecialAchievementDetailPanel.vue'
 
 import { achievementFamilies, achievementIcons } from './achievements/achievementUi'
 import './achievements/achievementShared.css'
+import './achievements/specialAchievements.css'
 
 const props = defineProps<{ nick: string }>()
 const emit = defineEmits<{ close: [] }>()
@@ -59,6 +64,7 @@ const activeIntensityTab = ref<'year' | 'month' | 'streak' | 'day'>('year')
 const selectedManufacturerKey = ref<string | null>(null)
 const selectedOriginKey = ref<string | null>(null)
 const selectedUniqueKey = ref<string | null>(null)
+const selectedSpecialKey = ref<string | null>(null)
 
 const flightBadgeNames: Record<number, string> = {
   25: 'Pierwszy rozdział',
@@ -702,6 +708,27 @@ const selectedAchievement = computed<AchievementItem | null>(() => {
   return state.achievements.find((item) => item.earned) ?? state.achievements[0] ?? null
 })
 
+const specialState = computed(() => data.value?.special ?? null)
+
+const selectedSpecial = computed<SpecialAchievementItem | null>(() => {
+  const state = specialState.value
+  if (!state) return null
+
+  if (selectedSpecialKey.value) {
+    const found = state.achievements.find((item) => item.key === selectedSpecialKey.value)
+    if (found) return found
+  }
+
+  return state.summary.last_earned
+    ?? state.achievements.find((item) => item.earned)
+    ?? state.achievements[0]
+    ?? null
+})
+
+function selectSpecial(item: SpecialAchievementItem): void {
+  selectedSpecialKey.value = item.key
+}
+
 const futureFamily = computed(
   () => achievementFamilies.find((item) => item.key === activeFamily.value) ?? achievementFamilies[0],
 )
@@ -927,6 +954,12 @@ function selectFamily(key: string): void {
   selectedKey.value = null
   if (key === 'aircraft') activeAircraftTab.value = 'collection'
   if (key === 'intensity') activeIntensityTab.value = 'year'
+  if (key === 'special' && !selectedSpecialKey.value) {
+    selectedSpecialKey.value = data.value?.special.summary.last_earned?.key
+      ?? data.value?.special.achievements.find((item) => item.earned)?.key
+      ?? data.value?.special.achievements[0]?.key
+      ?? null
+  }
 }
 
 function selectIntensityTab(tab: 'year' | 'month' | 'streak' | 'day'): void {
@@ -1089,6 +1122,10 @@ async function load(): Promise<void> {
     selectedManufacturerKey.value = response.aircraft_manufacturers.achievements[0]?.key ?? null
     selectedOriginKey.value = response.aircraft_origins.achievements[0]?.key ?? null
     selectedUniqueKey.value = response.aircraft_unique.achievements[0]?.key ?? null
+    selectedSpecialKey.value = response.special.summary.last_earned?.key
+      ?? response.special.achievements.find((item) => item.earned)?.key
+      ?? response.special.achievements[0]?.key
+      ?? null
   } catch (err) {
     error.value = err instanceof Error
       ? err.message
@@ -1118,9 +1155,19 @@ onMounted(load)
         <div v-if="loading" class="achievements-loading">Ładowanie osiągnięć…</div>
         <div v-else-if="error" class="achievements-error">{{ error }}</div>
 
-        <template v-else-if="data && familyState">
+        <template v-else-if="data && (familyState || specialState)">
           <AchievementSummaryCards
-            v-if="activeFamily !== 'aircraft' || activeAircraftTab === 'collection'"
+            v-if="activeFamily === 'special' && specialState"
+            :earned-value="`${specialState.summary.earned_count} z ${specialState.summary.total_count}`"
+            :active-value="`${specialState.summary.active_count} z ${specialState.summary.total_count}`"
+            :last-earned-value="specialState.summary.last_earned?.label ?? '—'"
+            :last-earned-note="formatDate(specialState.summary.last_earned?.earned_at ?? null)"
+            next-threshold-value="Kolekcja specjalna"
+            next-threshold-note="Każda odznaka ma własny warunek"
+          />
+
+          <AchievementSummaryCards
+            v-else-if="familyState && (activeFamily !== 'aircraft' || activeAircraftTab === 'collection')"
             :earned-value="`${familyState.summary.earned_count} z ${familyState.achievements.length}`"
             :active-value="`${familyState.summary.active_count} z ${familyState.summary.earned_count}`"
             :last-earned-value="familyState.summary.last_earned ? formatThreshold(familyState.summary.last_earned.threshold) : '—'"
@@ -1198,7 +1245,36 @@ onMounted(load)
             <button type="button" :class="['aircraft-achievement-tabs__item', { 'is-active': activeIntensityTab === 'day' }]" @click="selectIntensityTab('day')">Intensywny dzień</button>
           </nav>
 
-          <template v-if="activeFamily !== 'aircraft' || activeAircraftTab === 'collection'">
+          <template v-if="activeFamily === 'special' && specialState">
+            <section class="special-achievement-section">
+              <div class="achievement-family-heading">
+                <div>
+                  <h2>Specjalne</h2>
+                  <p>Wyjątkowe osiągnięcia wynikające z dat, długości Twojej historii lotniczej, powtarzających się podróży i geografii świata. Każda odznaka ma własny, niezależny warunek.</p>
+                </div>
+              </div>
+
+
+              <div class="special-achievement-workspace">
+                <SpecialAchievementGrid
+                  :achievements="specialState.achievements"
+                  :selected-key="selectedSpecial?.key ?? null"
+                  :get-badge-image="getSpecialBadgeImage"
+                  @select="selectSpecial"
+                />
+
+                <SpecialAchievementDetailPanel
+                  :selected-item="selectedSpecial"
+                  :badge-image="selectedSpecial ? getSpecialBadgeImage(selectedSpecial.slug) : null"
+                  :format-date="formatDate"
+                />
+              </div>
+            </section>
+
+            <AchievementLegend />
+          </template>
+
+          <template v-else-if="activeFamily !== 'aircraft' || activeAircraftTab === 'collection'">
             <section class="achievement-workspace">
               <div class="achievement-collection">
                 <div class="achievement-family-heading">

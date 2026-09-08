@@ -18,6 +18,7 @@ export type AchievementFamily =
   | 'intensity_month'
   | 'intensity_streak'
   | 'intensity_day'
+  | 'special'
 
 export interface AchievementItem {
   key: string
@@ -148,6 +149,39 @@ export interface IntensityAchievementState {
   day: IntensitySubState
 }
 
+
+export interface SpecialAchievementDetail {
+  label: string
+  value: string
+  note?: string | null
+}
+
+export interface SpecialAchievementItem {
+  key: string
+  label: string
+  slug: string
+  order: number
+  category: 'calendar' | 'history' | 'repeat' | 'geography'
+  description: string
+  status: AchievementStatus
+  earned: boolean
+  active: boolean
+  earned_at: string | null
+  notified_at: string | null
+  details: SpecialAchievementDetail[]
+}
+
+export interface SpecialAchievementState {
+  achievements: SpecialAchievementItem[]
+  pending_unlocks: SpecialAchievementItem[]
+  summary: {
+    earned_count: number
+    active_count: number
+    total_count: number
+    last_earned: SpecialAchievementItem | null
+  }
+}
+
 export interface AchievementsResponse {
   status: 'ok'
   completed_flights: number
@@ -164,11 +198,12 @@ export interface AchievementsResponse {
   duration: DurationAchievementState
   astronomical: AstronomicalAchievementState
   intensity: IntensityAchievementState
+  special: SpecialAchievementState
   aircraft_manufacturers: AircraftCollectionAchievementState
   aircraft_origins: AircraftCollectionAchievementState
   aircraft_unique: AircraftCollectionAchievementState
 }
 
 export interface AchievementSyncResponse extends AchievementsResponse {
-  newly_earned: (AchievementItem | AircraftCollectionAchievementItem)[]
+  newly_earned: (AchievementItem | AircraftCollectionAchievementItem | SpecialAchievementItem)[]
 }

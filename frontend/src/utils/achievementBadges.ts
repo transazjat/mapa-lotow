@@ -378,6 +378,63 @@ export const intensityDayBadgeImages: Record<number, string> = {
   15: intensityDay15,
 }
 
+
+import specialNewYearAir from '../assets/achievements/special/new-year-air.png'
+import specialLeapDay from '../assets/achievements/special/leap-day.png'
+import specialFriday13 from '../assets/achievements/special/friday-13.png'
+import specialChristmasAir from '../assets/achievements/special/christmas-air.png'
+import specialHistory5 from '../assets/achievements/special/history-5.png'
+import specialHistory10 from '../assets/achievements/special/history-10.png'
+import specialHistory15 from '../assets/achievements/special/history-15.png'
+import specialHistory20 from '../assets/achievements/special/history-20.png'
+import specialHistory25 from '../assets/achievements/special/history-25.png'
+import specialRoute10 from '../assets/achievements/special/route-10.png'
+import specialAirline25 from '../assets/achievements/special/airline-25.png'
+import specialAircraft25 from '../assets/achievements/special/aircraft-25.png'
+import specialCountryAirports10 from '../assets/achievements/special/country-airports-10.png'
+import specialAirport50 from '../assets/achievements/special/airport-50.png'
+import specialReturnAfterYears from '../assets/achievements/special/return-after-years.png'
+import specialFirstIntercontinental from '../assets/achievements/special/first-intercontinental.png'
+import specialAtlantic from '../assets/achievements/special/atlantic.png'
+import specialPacific from '../assets/achievements/special/pacific.png'
+import specialIndianOcean from '../assets/achievements/special/indian-ocean.png'
+import specialArcticOcean from '../assets/achievements/special/arctic-ocean.png'
+import specialPolarRoute from '../assets/achievements/special/polar-route.png'
+import specialNorthPole from '../assets/achievements/special/north-pole.png'
+import specialEquator from '../assets/achievements/special/equator.png'
+import specialDateLine from '../assets/achievements/special/date-line.png'
+
+const specialBadgeImages: Record<string, string> = {
+  'new-year-air': specialNewYearAir,
+  'leap-day': specialLeapDay,
+  'friday-13': specialFriday13,
+  'christmas-air': specialChristmasAir,
+  'history-5': specialHistory5,
+  'history-10': specialHistory10,
+  'history-15': specialHistory15,
+  'history-20': specialHistory20,
+  'history-25': specialHistory25,
+  'route-10': specialRoute10,
+  'airline-25': specialAirline25,
+  'aircraft-25': specialAircraft25,
+  'country-airports-10': specialCountryAirports10,
+  'airport-50': specialAirport50,
+  'return-after-years': specialReturnAfterYears,
+  'first-intercontinental': specialFirstIntercontinental,
+  atlantic: specialAtlantic,
+  pacific: specialPacific,
+  'indian-ocean': specialIndianOcean,
+  'arctic-ocean': specialArcticOcean,
+  'polar-route': specialPolarRoute,
+  'north-pole': specialNorthPole,
+  equator: specialEquator,
+  'date-line': specialDateLine,
+}
+
+export function getSpecialBadgeImage(slug: string): string | null {
+  return specialBadgeImages[slug] ?? null
+}
+
 export function getFlightBadgeImage(threshold: number): string | null {
   return flightBadgeImages[threshold] ?? null
 }
@@ -429,7 +486,7 @@ export function getIntensityBadgeImage(
 }
 
 export function getAchievementBadgeImage(
-  family: 'flights' | 'distance' | 'airports' | 'countries' | 'continents' | 'airlines' | 'aircraft' | 'routes' | 'duration' | 'astronomical' | 'intensity_year' | 'intensity_month' | 'intensity_streak' | 'intensity_day',
+  family: 'flights' | 'distance' | 'airports' | 'countries' | 'continents' | 'airlines' | 'aircraft' | 'routes' | 'duration' | 'astronomical' | 'intensity_year' | 'intensity_month' | 'intensity_streak' | 'intensity_day' | 'special',
   threshold: number,
 ): string | null {
   if (family === 'distance') return getDistanceBadgeImage(threshold)
@@ -445,6 +502,7 @@ export function getAchievementBadgeImage(
   if (family === 'intensity_month') return getIntensityBadgeImage('month', threshold)
   if (family === 'intensity_streak') return getIntensityBadgeImage('streak', threshold)
   if (family === 'intensity_day') return getIntensityBadgeImage('day', threshold)
+  if (family === 'special') return null
   return getFlightBadgeImage(threshold)
 }
 
